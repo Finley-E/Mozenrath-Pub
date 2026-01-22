@@ -1,5 +1,5 @@
 
-import { GoogleGenAI } from "@google/genai";
+import { GoogleGenAI, Type } from "@google/genai";
 
 export class GeminiService {
   private static async getClient() {
@@ -10,7 +10,7 @@ export class GeminiService {
     prompt: string;
     resolution: '720p' | '1080p';
     aspectRatio: '16:9' | '9:16';
-    image?: string; // base64
+    image?: string;
     onProgress: (status: string) => void;
   }): Promise<string | undefined> {
     const ai = await this.getClient();
@@ -50,10 +50,33 @@ export class GeminiService {
     } catch (error: any) {
       console.error("Video Generation Error:", error);
       if (error.message?.includes("Requested entity was not found")) {
-        // This usually triggers the key selection reset in the UI
         throw new Error("KEY_EXPIRED");
       }
       throw error;
+    }
+  }
+
+  static async generateSocialMetadata(prompt: string, platform: string): Promise<{caption: string, tags: string[]}> {
+    const ai = await this.getClient();
+    const response = await ai.models.generateContent({
+      model: 'gemini-3-flash-preview',
+      contents: `Generate a viral caption and 5 relevant hashtags for ${platform} based on this video content: "${prompt}". Format as JSON with "caption" and "tags" keys.`,
+      config: {
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            caption: { type: Type.STRING },
+            tags: { type: Type.ARRAY, items: { type: Type.STRING } }
+          },
+          required: ["caption", "tags"]
+        }
+      }
+    });
+    try {
+      return JSON.parse(response.text);
+    } catch {
+      return { caption: `New asset generated for ${platform}! #AI #Creative`, tags: ["AI", "NovaRender"] };
     }
   }
 

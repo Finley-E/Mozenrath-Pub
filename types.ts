@@ -9,9 +9,24 @@ export enum RenderStatus {
 
 export enum PublishStatus {
   IDLE = 'IDLE',
+  DRAFTING = 'DRAFTING',
   UPLOADING = 'UPLOADING',
   LIVE = 'LIVE',
   FAILED = 'FAILED'
+}
+
+export interface PlatformMetadata {
+  caption: string;
+  tags: string[];
+}
+
+export interface PlatformConnection {
+  id: string;
+  name: string;
+  icon: string;
+  isConnected: boolean;
+  username?: string;
+  color: string;
 }
 
 export interface PlatformStatus {
@@ -19,6 +34,8 @@ export interface PlatformStatus {
   name: string;
   status: PublishStatus;
   progress: number;
+  metadata?: PlatformMetadata;
+  errorMessage?: string;
   url?: string;
 }
 
@@ -34,9 +51,4 @@ export interface RenderJob {
   resolution: '720p' | '1080p';
   aspectRatio: '16:9' | '9:16';
   publishedPlatforms?: PlatformStatus[];
-}
-
-export interface UserPreferences {
-  apiKeySelected: boolean;
-  defaultResolution: '720p' | '1080p';
 }
