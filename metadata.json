@@ -1,0 +1,7 @@
+{
+  "name": "NovaRender AI Dashboard",
+  "description": "A high-performance creative production pipeline powered by Gemini. Generate, render, and manage AI video content with enterprise-grade controls.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
