@@ -10,9 +10,17 @@ export enum RenderStatus {
 export enum PublishStatus {
   IDLE = 'IDLE',
   DRAFTING = 'DRAFTING',
+  VALIDATING = 'VALIDATING',
   UPLOADING = 'UPLOADING',
   LIVE = 'LIVE',
   FAILED = 'FAILED'
+}
+
+export enum ErrorCategory {
+  AUTH = 'AUTHENTICATION_EXPIRED',
+  VALIDATION = 'PLATFORM_MISMATCH',
+  NETWORK = 'GATEWAY_TIMEOUT',
+  LIMIT = 'RATE_LIMIT_EXCEEDED'
 }
 
 export interface PlatformMetadata {
@@ -36,6 +44,8 @@ export interface PlatformStatus {
   progress: number;
   metadata?: PlatformMetadata;
   errorMessage?: string;
+  errorCategory?: ErrorCategory;
+  retryCount: number;
   url?: string;
 }
 
