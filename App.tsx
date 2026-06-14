@@ -30,6 +30,7 @@ import {
 } from 'lucide-react';
 import { Numa, NumaClass, EvolutionStage, FoodItem, FoodCategory, Island, VocabWord, GameState, SanuLedger } from './types';
 import { ISLANDS, VOCABULARY, FOOD_ITEMS, NUMA_ROSTER, PRIMORDIALS, validateMunuWord } from './services/mascareneData';
+import { MunuGameEngine, GbcTileType } from './lib/gameEngine';
 
 // GBC 4-Color Selective Palettes
 const PALETTES = {
@@ -153,27 +154,68 @@ export default function App() {
   });
 
   // Player Saved Game state (Sanu Ledger & Progress)
+  const [prologueComplete, setPrologueComplete] = useState<boolean>(() => {
+    const saved = localStorage.getItem('mascarene_prologue_complete');
+    return saved !== null ? saved === 'true' : false;
+  });
+  const [prologueStep, setPrologueStep] = useState<number>(() => {
+    const saved = localStorage.getItem('mascarene_prologue_step');
+    return saved !== null ? Number(saved) : 0;
+  });
+  const [playerName, setPlayerName] = useState<string>(() => {
+    const saved = localStorage.getItem('mascarene_player_name');
+    return saved !== null ? saved : 'Blas';
+  });
+  const [collectedFragments, setCollectedFragments] = useState<number>(() => {
+    const saved = localStorage.getItem('mascarene_collected_fragments');
+    return saved !== null ? Number(saved) : 0;
+  });
+  
+  // Tabaji interaction tasks status
+  const [tabajiQuestDeliveredWeya, setTabajiQuestDeliveredWeya] = useState<boolean>(() => {
+    return localStorage.getItem('mascarene_tq_weya') === 'true';
+  });
+  const [tabajiQuestTradedVala, setTabajiQuestTradedVala] = useState<boolean>(() => {
+    return localStorage.getItem('mascarene_tq_vala') === 'true';
+  });
+  const [tabajiQuestOrganizedYuma, setTabajiQuestOrganizedYuma] = useState<boolean>(() => {
+    return localStorage.getItem('mascarene_tq_yuma') === 'true';
+  });
+
+  // Selected starter numa index (for starter selection step 4 preview)
+  const [selectedStarterId, setSelectedStarterId] = useState<string>("001");
+
   const [vala, setVala] = useState<number>(() => {
     const saved = localStorage.getItem('mascarene_vala');
-    return saved !== null ? Number(saved) : 35;
+    if (saved !== null) return Number(saved);
+    const isPro = localStorage.getItem('mascarene_prologue_complete') === 'true';
+    return isPro ? 35 : 0; // Blas starts with 0 vala
   });
   const [koraVessels, setKoraVessels] = useState<number>(() => {
     const saved = localStorage.getItem('mascarene_kora_vessels');
-    return saved !== null ? Number(saved) : 3;
+    if (saved !== null) return Number(saved);
+    const isPro = localStorage.getItem('mascarene_prologue_complete') === 'true';
+    return isPro ? 3 : 0; // 0 clay vessels initially during tutorial
   });
   const [discoveredNuma, setDiscoveredNuma] = useState<string[]>(() => {
     const saved = localStorage.getItem('mascarene_discovered_numa');
-    return saved !== null ? JSON.parse(saved) : ["001", "004", "007"];
+    if (saved !== null) return JSON.parse(saved);
+    const isPro = localStorage.getItem('mascarene_prologue_complete') === 'true';
+    return isPro ? ["001", "004", "007"] : []; // empty until starter selected
   });
   const [discoveredFoods, setDiscoveredFoods] = useState<string[]>(() => {
     const saved = localStorage.getItem('mascarene_discovered_foods');
-    return saved !== null ? JSON.parse(saved) : ["stap-01", "stap-02", "stap-03", "fora-01", "drin-01"];
+    if (saved !== null) return JSON.parse(saved);
+    const isPro = localStorage.getItem('mascarene_prologue_complete') === 'true';
+    return isPro ? ["stap-01", "stap-02", "stap-03", "fora-01", "drin-01"] : [];
   });
   const [activeCompanions, setActiveCompanions] = useState<{ numaId: string, bond: number, stats: any }[]>(() => {
     const saved = localStorage.getItem('mascarene_active_companions');
-    return saved !== null ? JSON.parse(saved) : [
+    if (saved !== null) return JSON.parse(saved);
+    const isPro = localStorage.getItem('mascarene_prologue_complete') === 'true';
+    return isPro ? [
       { numaId: "001", bond: 30, stats: { memory: 40, current: 8, resonance: 6 } }
-    ];
+    ] : []; // empty companion space
   });
   const [unlockedPathStones, setUnlockedPathStones] = useState<string[]>(() => {
     const saved = localStorage.getItem('mascarene_unlocked_path_stones');
@@ -185,13 +227,15 @@ export default function App() {
   });
   const [pantryInventory, setPantryInventory] = useState<Record<string, number>>(() => {
     const saved = localStorage.getItem('mascarene_pantry_inventory');
-    return saved !== null ? JSON.parse(saved) : {
+    if (saved !== null) return JSON.parse(saved);
+    const isPro = localStorage.getItem('mascarene_prologue_complete') === 'true';
+    return isPro ? {
       "stap-01": 3,
       "stap-02": 2,
       "stap-03": 5,
       "fora-01": 1,
       "drin-01": 2
-    };
+    } : {};
   });
 
   // Dynamic Weather and Time of Day
@@ -277,15 +321,76 @@ export default function App() {
     localStorage.setItem('mascarene_time_of_day', timeOfDay);
   }, [timeOfDay]);
 
-  // Game Boy RPG walkabout character position
-  const [charX, setCharX] = useState(3);
-  const [charY, setCharY] = useState(2);
-  const [prevCharX, setPrevCharX] = useState(3);
-  const [prevCharY, setPrevCharY] = useState(2);
+  useEffect(() => {
+    localStorage.setItem('mascarene_prologue_complete', String(prologueComplete));
+  }, [prologueComplete]);
 
-  const [gbMessage, setGbMessage] = useState<string>("MUNU EXP: Walk to explore!");
+  useEffect(() => {
+    localStorage.setItem('mascarene_prologue_step', String(prologueStep));
+  }, [prologueStep]);
+
+  useEffect(() => {
+    localStorage.setItem('mascarene_player_name', playerName);
+  }, [playerName]);
+
+  useEffect(() => {
+    localStorage.setItem('mascarene_collected_fragments', String(collectedFragments));
+  }, [collectedFragments]);
+
+  useEffect(() => {
+    localStorage.setItem('mascarene_tq_weya', String(tabajiQuestDeliveredWeya));
+  }, [tabajiQuestDeliveredWeya]);
+
+  useEffect(() => {
+    localStorage.setItem('mascarene_tq_vala', String(tabajiQuestTradedVala));
+  }, [tabajiQuestTradedVala]);
+
+  useEffect(() => {
+    localStorage.setItem('mascarene_tq_yuma', String(tabajiQuestOrganizedYuma));
+  }, [tabajiQuestOrganizedYuma]);
+
+  // Ravali Quarter map for the tutorial
+  const MAP_RAVALI = [
+    [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+    [1,0,0,0,0,1,1,0,0,0,0,1,1,1,1,1],
+    [1,0,8,0,0,0,0,0,8,0,0,0,0,0,0,1],
+    [1,0,1,1,0,1,1,1,0,1,1,0,1,1,0,1],
+    [1,0,1,0,0,0,0,1,0,1,0,0,0,1,0,1],
+    [1,0,0,0,0,0,0,0,0,0,0,8,0,0,0,1],
+    [1,1,1,0,1,1,0,1,1,1,0,1,1,1,0,1],
+    [1,0,0,0,0,1,0,0,0,1,0,0,0,1,0,1],
+    [1,0,0,1,0,0,0,0,0,0,0,0,0,0,0,1],
+    [1,0,0,1,1,1,1,1,1,1,1,1,0,1,0,1],
+    [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
+  ];
+
+  // Game Boy RPG walkabout character position
+  const [charX, setCharX] = useState(() => {
+    const isPro = localStorage.getItem('mascarene_prologue_complete') === 'true';
+    return isPro ? 3 : 1;
+  });
+  const [charY, setCharY] = useState(() => {
+    const isPro = localStorage.getItem('mascarene_prologue_complete') === 'true';
+    return isPro ? 2 : 1;
+  });
+  const [prevCharX, setPrevCharX] = useState(() => {
+    const isPro = localStorage.getItem('mascarene_prologue_complete') === 'true';
+    return isPro ? 3 : 1;
+  });
+  const [prevCharY, setPrevCharY] = useState(() => {
+    const isPro = localStorage.getItem('mascarene_prologue_complete') === 'true';
+    return isPro ? 2 : 1;
+  });
+
+  const [gbMessage, setGbMessage] = useState<string>(() => {
+    const isPro = localStorage.getItem('mascarene_prologue_complete') === 'true';
+    return isPro ? "MUNU EXP: Walk to explore!" : "Your necklace Sana Loop sparkles! Step to collect the 3 Memory Fragments (📜)";
+  });
   const [encounterNuma, setEncounterNuma] = useState<Numa | null>(null);
-  const [currentMap, setCurrentMap] = useState<number[][]>(MAP_LOVI);
+  const [currentMap, setCurrentMap] = useState<number[][]>(() => {
+    const isPro = localStorage.getItem('mascarene_prologue_complete') === 'true';
+    return isPro ? MAP_LOVI : MAP_RAVALI;
+  });
 
   // --- PREMIUM POKÉMON RED RETRO BATTLE ENGINE STATES & HELPERS ---
   const MOVES_BY_CLASS: Record<string, { name: string; power: number }[]> = {
@@ -601,23 +706,21 @@ export default function App() {
 
   // RPG walk logic
   const handleWalk = (dx: number, dy: number) => {
-    let nextX = charX + dx;
-    let nextY = charY + dy;
-
-    // Viewport constraints
-    if (nextX < 0 || nextX >= 16 || nextY < 0 || nextY >= 11) {
-      playSound('click');
-      return;
-    }
-
-    const tile = currentMap[nextY][nextX];
+    const moveRes = MunuGameEngine.solveMove({ x: charX, y: charY }, dx, dy, currentMap);
     
-    // Obstructive tiles: 1 (Trees), 2 (Aquatic), 3 (Lava blocks/basalt), 4 (Windmill wall)
-    if (tile === 1 || tile === 2 || tile === 3 || tile === 4) {
+    if (!moveRes.success) {
       playSound('click');
-      setGbMessage("Ouch! Obstacle block.");
+      if (moveRes.tile !== -1 && MunuGameEngine.isSolidObstacle(moveRes.tile)) {
+        setGbMessage("Ouch! Obstacle block.");
+      } else {
+        setGbMessage(moveRes.message);
+      }
       return;
     }
+
+    const nextX = moveRes.x;
+    const nextY = moveRes.y;
+    const tile = moveRes.tile as number;
 
     // Move player and update companion Trail tracker
     setPrevCharX(charX);
@@ -627,6 +730,39 @@ export default function App() {
     playSound('beep');
 
     // Trigger walk outcomes based on tile type
+    if (!prologueComplete) {
+      if (tile === 8) {
+        const nextCount = collectedFragments + 1;
+        setCollectedFragments(nextCount);
+        playSound('success');
+
+        let fragmentMsg = "";
+        if (nextCount === 1) {
+          fragmentMsg = "📜 '...ancient forest canopies once sang with the Taki currents...'";
+        } else if (nextCount === 2) {
+          fragmentMsg = "📜 '...shrine keepers left warm volcanic rice to favor Kozui...'";
+        } else if (nextCount === 3) {
+          fragmentMsg = "📜 '...Reef partners of Vanui swam side-by-side with young of Mase...'";
+        }
+        setGbMessage(fragmentMsg);
+        showToast(`Memory restoring! Collected Fragment ${nextCount}/3.`);
+
+        // Clear fragment from tile
+        const updatedMap = [...currentMap.map(row => [...row])];
+        updatedMap[nextY][nextX] = 0;
+        setCurrentMap(updatedMap);
+
+        if (nextCount === 3) {
+          setTimeout(() => {
+            setPrologueStep(6);
+          }, 3500);
+        }
+      } else {
+        setGbMessage("Sana Loop sparks! Collect the 3 Memory Fragments (📜) on the ground!");
+      }
+      return;
+    }
+
     if (tile === 5) {
       // Grass encounter! Trigger wild Numa
       const islandNumas = numaList.filter(n => n.primaryIsland === currentIsland.name && n.stage === EvolutionStage.JUVENILE);
@@ -702,6 +838,372 @@ export default function App() {
     } else {
       setGbMessage("Walk to find Numa or plants!");
     }
+  };
+
+  // Render Prologue screens inside the Game Boy screen
+  const renderPrologueViewport = () => {
+    // Step 0: GBC Name Choosing Screen
+    if (prologueStep === 0) {
+      return (
+        <div className="flex-grow flex flex-col justify-between items-center p-4 bg-[#e0ffd1] text-stone-900 border border-black/20 rounded-md select-none min-h-[300px] font-mono text-center relative overflow-hidden">
+          <div className="absolute inset-0 bg-grid opacity-5 pointer-events-none" />
+          <div className="space-y-3 w-full mt-2">
+            <h2 className="text-sm font-black tracking-wider uppercase text-emerald-950 border-b border-black/10 pb-1.5 animate-pulse">
+              MASCARENE CIVILIZATION
+            </h2>
+            <p className="text-[10px] text-stone-700 leading-tight">
+              A GBC-Styled Retro Exploration RPG of the Munu Archipelago
+            </p>
+          </div>
+
+          <div className="bg-white/80 p-3 rounded-xl border border-black/10 shadow-sm w-full max-w-[240px] space-y-2">
+            <label className="text-[10px] font-black uppercase text-stone-700 block">
+              Choose character Name (Age 9):
+            </label>
+            <input
+              type="text"
+              id="player_name_prologue_input"
+              value={playerName}
+              maxLength={12}
+              onChange={(e) => setPlayerName(e.target.value.replace(/[^a-zA-Z]/g, ''))}
+              className="w-full text-center py-1 px-2 bg-stone-50 border-2 border-stone-800 rounded font-bold uppercase tracking-widest text-[#161e17] text-xs focus:outline-none focus:ring-1 focus:ring-emerald-600"
+            />
+            <p className="text-[8px] text-stone-500 italic">
+              Blas is the authentic default protagonist name.
+            </p>
+          </div>
+
+          <button
+            onClick={() => {
+              if (!playerName.trim()) {
+                setPlayerName("Blas");
+              }
+              playSound('success');
+              setPrologueStep(1);
+            }}
+            className="w-full max-w-[200px] py-2 bg-emerald-800 hover:bg-emerald-700 text-white font-extrabold rounded-lg shadow border border-emerald-950 text-[10px] uppercase tracking-widest transition-transform hover:scale-105 active:scale-95"
+          >
+            START ADVENTURE ▶
+          </button>
+          
+          <div className="text-[8px] text-stone-500 border-t border-black/10 pt-1 w-full uppercase tracking-widest">
+            Retro Spec 1999 • Google AI Studio Built
+          </div>
+        </div>
+      );
+    }
+
+    // Step 1: Ravali Quarter Introduction
+    if (prologueStep === 1) {
+      return (
+        <div className="flex-grow flex flex-col justify-between p-4 bg-[#e0ffd1] text-stone-900 border border-black/20 rounded-md select-none min-h-[300px] font-mono relative overflow-hidden">
+          <div className="space-y-2.5">
+            <span className="text-[8px] font-extrabold bg-stone-800 text-white px-2 py-0.5 rounded uppercase tracking-widest">
+              District: Ravali Quarter
+            </span>
+            <h3 className="text-xs font-black text-emerald-950 uppercase">🏡 The Everyday Hustle</h3>
+            <div className="text-[10px] text-stone-800 space-y-2 leading-relaxed">
+              <p>
+                You play as <strong>{playerName}</strong>, age 9, living in the <strong>Ravali Quarter</strong>: a dense, colorful neighborhood with stacked homes, shared courtyards, and laundry fluttering overhead.
+              </p>
+              <p>
+                To support your family’s small corner stall, the <strong>Tabaji</strong>—a community meeting place to exchange food, weather news, and stories—you start helping out local neighbors today.
+              </p>
+            </div>
+          </div>
+
+          <div className="space-y-1.5 w-full">
+            <button
+              onClick={() => {
+                playSound('beep');
+                setPrologueStep(2);
+              }}
+              className="w-full py-2 bg-emerald-800 hover:bg-emerald-700 text-white font-bold rounded-lg border border-emerald-950 text-[10px] uppercase tracking-wider text-center"
+            >
+              🚪 Open the Tabaji Stall
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    // Step 2: Tabaji helper simulation (interactive tutorial)
+    if (prologueStep === 2) {
+      const allDone = tabajiQuestDeliveredWeya && tabajiQuestTradedVala && tabajiQuestOrganizedYuma;
+      return (
+        <div className="flex-grow flex flex-col justify-between p-3 bg-[#e0ffd1] text-stone-900 border border-black/20 rounded-md select-none min-h-[300px] font-mono relative overflow-hidden">
+          <div className="space-y-1.5">
+            <div className="flex justify-between items-center border-b border-black/10 pb-1">
+              <span className="text-[8px] font-bold uppercase tracking-widest text-stone-600">Family Hustle: Tabaji</span>
+              <span className="text-[10px] font-bold bg-amber-200 px-1.5 rounded">💰 {vala} Vala</span>
+            </div>
+            <p className="text-[9.5px] text-stone-750 font-bold">
+              Help these 3 neighborhood customers waiting at your corner counter:
+            </p>
+          </div>
+
+          <div className="space-y-2 py-2">
+            {/* Customer 1 */}
+            <div className="bg-white/70 p-1.5 rounded border border-black/15 flex justify-between items-center text-[9px]">
+              <div>
+                <span className="font-extrabold text-stone-900 block">👵 Auntie Sylvain:</span>
+                <span className="text-stone-600 block italic">"My joints sting. Hand me dry Weya Brew leaves..."</span>
+              </div>
+              <button
+                disabled={tabajiQuestDeliveredWeya}
+                onClick={() => {
+                  playSound('success');
+                  setTabajiQuestDeliveredWeya(true);
+                  setVala(v => v + 5);
+                  showToast("Delivered Weya Brew! +5 Vala earned.");
+                }}
+                className={`py-1 px-2.5 rounded text-[8.5px] font-extrabold ${tabajiQuestDeliveredWeya ? 'bg-stone-300 text-stone-500 cursor-default' : 'bg-rose-800 text-white border border-rose-950 hover:bg-rose-700'}`}
+              >
+                {tabajiQuestDeliveredWeya ? "✔ DELIVERED" : "🍶 DELIVER BREW"}
+              </button>
+            </div>
+
+            {/* Customer 2 */}
+            <div className="bg-white/70 p-1.5 rounded border border-black/15 flex justify-between items-center text-[9px]">
+              <div>
+                <span className="font-extrabold text-stone-900 block">👨 Uncle Marie:</span>
+                <span className="text-stone-600 block italic">"Want to deposit some savings in our ledger."</span>
+              </div>
+              <button
+                disabled={tabajiQuestTradedVala}
+                onClick={() => {
+                  playSound('success');
+                  setTabajiQuestTradedVala(true);
+                  setVala(v => v + 15);
+                  showToast("Exchanged ledger trade! +15 Vala earned.");
+                }}
+                className={`py-1 px-2.5 rounded text-[8.5px] font-extrabold ${tabajiQuestTradedVala ? 'bg-stone-300 text-stone-500 cursor-default' : 'bg-amber-700 text-white border border-amber-950  hover:bg-amber-600'}`}
+              >
+                {tabajiQuestTradedVala ? "✔ TRADED" : "💹 RECORD VALA"}
+              </button>
+            </div>
+
+            {/* Customer 3 */}
+            <div className="bg-white/70 p-1.5 rounded border border-black/15 flex justify-between items-center text-[9px]">
+              <div>
+                <span className="font-extrabold text-stone-900 block">🧒 Cousin Dev:</span>
+                <span className="text-stone-600 block italic">"The Yuma seeds are messy. Let's arrange them."</span>
+              </div>
+              <button
+                disabled={tabajiQuestOrganizedYuma}
+                onClick={() => {
+                  playSound('success');
+                  setTabajiQuestOrganizedYuma(true);
+                  setVala(v => v + 5);
+                  showToast("Organized seeds tray! +5 Vala earned.");
+                }}
+                className={`py-1 px-2.5 rounded text-[8.5px] font-extrabold ${tabajiQuestOrganizedYuma ? 'bg-stone-300 text-stone-500 cursor-default' : 'bg-emerald-800 text-white border border-emerald-950 hover:bg-emerald-700'}`}
+              >
+                {tabajiQuestOrganizedYuma ? "✔ ORGANIZED" : "📦 SORT TRAY"}
+              </button>
+            </div>
+          </div>
+
+          <div className="w-full">
+            {allDone ? (
+              <button
+                onClick={() => {
+                  playSound('levelUp');
+                  setPrologueStep(3);
+                }}
+                className="w-full py-2 bg-gradient-to-r from-teal-800 to-emerald-800 text-white font-black rounded-lg border border-teal-950 text-[10px] uppercase tracking-widest text-center animate-bounce shadow-inner"
+              >
+                ⚡ Close Counter & Rest
+              </button>
+            ) : (
+              <div className="text-[8px] text-stone-500 text-center italic uppercase py-1">
+                Help all 3 customers to finish your business day...
+              </div>
+            )}
+          </div>
+        </div>
+      );
+    }
+
+    // Step 3: Inciting Incident (The Wayfarer & Sana Loop)
+    if (prologueStep === 3) {
+      return (
+        <div className="flex-grow flex flex-col justify-between p-4 bg-gradient-to-b from-[#1b261d] to-[#0d160e] text-[#eff6ee] border border-emerald-800/20 rounded-md select-none min-h-[300px] font-mono relative overflow-hidden">
+          <div className="absolute inset-0 bg-indigo-950/20 mix-blend-color-burn pointer-events-none" />
+          <div className="space-y-3">
+            <div className="flex justify-between items-center border-[#2d392e] border-b pb-1">
+              <span className="text-[8.5px] text-amber-500 font-extrabold uppercase tracking-widest">INCITING INCIDENT</span>
+              <span className="text-[8.5px] text-stone-500 font-mono">1999 Retro GBC</span>
+            </div>
+            
+            <p className="text-[9.5px] leading-relaxed text-stone-300">
+              Late that evening, a powerful coastal storm washes over the district. Winds howl through the stacked homes.
+            </p>
+            <p className="text-[9.5px] leading-relaxed text-stone-300 border-l-2 border-amber-500 pl-2 py-0.5 bg-amber-500/5">
+              An elderly traveler wrapped in wet woven seaweed blankets joins the Tabaji counter. Carrying a warm energy, he smiles, leaving a sea-beaded necklace on the ledger:
+              <br />
+              <strong className="text-amber-400 block mt-1 text-[10px]">
+                “Some things are remembered by books. Some things are remembered by people. Some things remember themselves.”
+              </strong>
+            </p>
+            <p className="text-[9.5px] leading-relaxed text-[#86a188] italic">
+              He vanishes into the wind, leaving behind the legendary ancient necklace of polished basalt and memory weave.
+            </p>
+          </div>
+
+          <button
+            onClick={() => {
+              playSound('evolve');
+              setPrologueStep(4);
+            }}
+            className="w-full py-2 bg-amber-600 hover:bg-amber-500 text-stone-950 font-black rounded-lg border border-amber-850 text-[10px] uppercase tracking-wider text-center"
+          >
+            📿 Touch & Wear Sana Loop
+          </button>
+        </div>
+      );
+    }
+
+    // Step 4: Companion Starter Selection
+    if (prologueStep === 4) {
+      const starters = [
+        { id: "001", name: "Taki", class: "Forest", desc: "🌱 Curiosity & Adaptability. Follows paths of moss-woven canopy. Balanced stats.", emoji: "🌱" },
+        { id: "004", name: "Kozui", class: "Volcano", desc: "🔥 Determination & Strength. Rooted in hot basalt currents. Heavy attack power.", emoji: "🔥" },
+        { id: "007", name: "Vanui", class: "Reef", desc: "🪸 Cooperation & Community. Connected to element wave-tides. High defense bond.", emoji: "🪸" }
+      ];
+      const selectedStarterObj = starters.find(s => s.id === selectedStarterId) || starters[0];
+
+      const handleChooseStarter = () => {
+        playSound('success');
+        const initCompanion = {
+          numaId: selectedStarterObj.id,
+          bond: 30,
+          stats: {
+            memory: selectedStarterObj.id === "001" ? 42 : selectedStarterObj.id === "004" ? 38 : 46,
+            current: selectedStarterObj.id === "001" ? 8 : selectedStarterObj.id === "004" ? 11 : 6,
+            resonance: selectedStarterObj.id === "001" ? 7 : selectedStarterObj.id === "004" ? 5 : 9
+          }
+        };
+        setActiveCompanions([initCompanion]);
+        setDiscoveredNuma([selectedStarterObj.id]);
+        setDiscoveredFoods(["stap-01", "fora-01"]);
+        setPantryInventory({
+          "stap-01": 2,
+          "fora-01": 2
+        });
+        setKoraVessels(3);
+        setVala(35);
+        setCollectedFragments(0);
+        setCharX(1);
+        setCharY(1);
+        setPrevCharX(1);
+        setPrevCharY(1);
+        setGbMessage(`Selected ${selectedStarterObj.name} as partner! Use WASD/Arrows to find 3 scroll fragments.`);
+        showToast(`Chosen Partner: ${selectedStarterObj.name}! Unlocked Sana Loop!`);
+        setPrologueStep(5);
+      };
+
+      return (
+        <div className="flex-grow flex flex-col justify-between p-3 bg-gradient-to-b from-[#1b261d] to-[#0c130d] text-[#eff6ee] border border-emerald-800/20 rounded-md select-none min-h-[300px] font-mono relative overflow-hidden">
+          <div className="space-y-1.5">
+            <span className="text-[8px] font-black text-amber-400 bg-amber-400/10 border border-amber-400/20 px-1.5 py-0.5 rounded uppercase tracking-widest block w-max">
+              SANA LOOP RESONANCE
+            </span>
+            <p className="text-[10px] text-stone-300 leading-tight">
+              The necklace glows! Three wild Numa spirits materialize from the air. Choose your path companion:
+            </p>
+          </div>
+
+          <div className="grid grid-cols-3 gap-1 mt-1">
+            {starters.map(st => (
+              <button
+                key={st.id}
+                onClick={() => {
+                  playSound('beep');
+                  setSelectedStarterId(st.id);
+                }}
+                className={`py-2 px-1 rounded-lg border text-center transition-all ${selectedStarterId === st.id ? 'bg-[#4c6c4c] text-white border-white' : 'bg-[#121913] text-[#86a188] border-[#2d392e] hover:text-[#eff6ee]'}`}
+              >
+                <div className="text-lg">{st.emoji}</div>
+                <div className="text-[9.5px] font-bold mt-0.5">{st.name}</div>
+              </button>
+            ))}
+          </div>
+
+          <div className="bg-white/10 p-2 rounded-lg border border-white/10 text-left space-y-1 min-h-[84px] flex flex-col justify-center">
+            <div className="flex justify-between items-center border-b border-white/5 pb-0.5">
+              <span className="font-bold text-[10.5px] uppercase tracking-wide text-white">{selectedStarterObj.name}</span>
+              <span className="text-[8px] bg-emerald-800 text-stone-100 font-mono px-1 rounded">Lvl 3 Starter</span>
+            </div>
+            <p className="text-[9px] text-[#86a188] leading-snug">{selectedStarterObj.desc}</p>
+            <div className="text-[7.5px] text-amber-300">
+              Class: {selectedStarterObj.class} | Bond: +30 start bond
+            </div>
+          </div>
+
+          <button
+            onClick={handleChooseStarter}
+            className="w-full py-2 bg-gradient-to-r from-emerald-600 to-emerald-700 text-white font-extrabold rounded-lg shadow-md border border-emerald-950 text-[10px] uppercase tracking-wider text-center"
+          >
+            🤝 Awake {selectedStarterObj.name} & Bind Loop
+          </button>
+        </div>
+      );
+    }
+
+    // Step 6: Prologue finish & Real Plot Begins
+    if (prologueStep === 6) {
+      return (
+        <div className="flex-grow flex flex-col justify-between p-4 bg-[#1b261d] text-[#eff6ee] border border-emerald-850 rounded-md select-none min-h-[300px] font-mono relative overflow-hidden">
+          <div className="absolute inset-0 bg-grid opacity-5 pointer-events-none" />
+          <div className="space-y-3">
+            <div className="flex justify-between items-center border-[#2d392e] border-b pb-1">
+              <span className="text-[8.5px] text-amber-500 font-bold uppercase tracking-wider">📜 DISCOVERY / RESTORED PAGE</span>
+              <span className="text-[8.5px] text-emerald-400 font-bold uppercase">Success</span>
+            </div>
+
+            <h3 className="text-xs font-black uppercase text-emerald-300">
+              The Gathering of Ravali Quarter
+            </h3>
+            
+            <div className="text-[9.5px] text-stone-200 space-y-2 leading-relaxed max-h-[170px] overflow-y-auto pr-1">
+              <p>
+                By stitching the memory nodes together, your first page of the local ledger is fully restored!
+              </p>
+              <p className="border-l-2 border-emerald-500 pl-2 bg-emerald-500/5 py-0.5">
+                The texts reveal that 100 years ago, Ravali Quarter hosted a seasonal <strong>Migration Gathering</strong> where people and elements united in shared songs.
+              </p>
+              <p>
+                You are becoming the first new <strong>Wayfarer of Munu</strong> in generations!
+              </p>
+              <p>
+                By traveling Lovi, Koru, Mase, and Wesa, you will restore forgotten pathways, food species, and ancient stories.
+              </p>
+            </div>
+          </div>
+
+          <button
+            onClick={() => {
+              setPrologueComplete(true);
+              playSound('levelUp');
+              setCurrentIslandIndex(0);
+              setCurrentMap(MAP_LOVI);
+              setCharX(3);
+              setCharY(2);
+              setPrevCharX(3);
+              setPrevCharY(2);
+              setGbMessage("Sana Loop active! Walk to explore Munu with companion!");
+              showToast("Congratulations! Welcome to Munu Archipelago.");
+            }}
+            className="w-full py-2 bg-gradient-to-r from-[#4c6c4c] to-emerald-700 text-white font-black rounded-lg border border-emerald-900 text-[10.5px] uppercase tracking-widest text-center animate-pulse"
+          >
+            ⛵ SET SAIL - BEGIN FULL VOYAGE
+          </button>
+        </div>
+      );
+    }
+
+    return null;
   };
 
   // --- PREMIUM RETRO TURN-BASED COMBAT LOOP ACTIONS ---
@@ -1424,6 +1926,46 @@ export default function App() {
     showToast("Sanu Ledger progress returned to the ancient currents!");
   };
 
+  // Replay prologue story reset
+  const handleReplayPrologue = () => {
+    playSound('evolve');
+    
+    localStorage.removeItem('mascarene_prologue_complete');
+    localStorage.removeItem('mascarene_prologue_step');
+    localStorage.removeItem('mascarene_player_name');
+    localStorage.removeItem('mascarene_collected_fragments');
+    localStorage.removeItem('mascarene_tq_weya');
+    localStorage.removeItem('mascarene_tq_vala');
+    localStorage.removeItem('mascarene_tq_yuma');
+    
+    setPrologueComplete(false);
+    setPrologueStep(0);
+    setPlayerName("Blas");
+    setCollectedFragments(0);
+    setTabajiQuestDeliveredWeya(false);
+    setTabajiQuestTradedVala(false);
+    setTabajiQuestOrganizedYuma(false);
+    
+    setVala(0);
+    setKoraVessels(0);
+    setDiscoveredNuma([]);
+    setDiscoveredFoods([]);
+    setActiveCompanions([]);
+    setPantryInventory({});
+    setUnlockedPathStones([]);
+    
+    setCurrentIslandIndex(0);
+    setCurrentMap(MAP_RAVALI);
+    setCharX(1);
+    setCharY(1);
+    setPrevCharX(1);
+    setPrevCharY(1);
+    setGbMessage("Choose your character's name to begin!");
+    
+    setActiveTab('play');
+    showToast("🌌 Prologue initiated! Welcome to Ravali Quarter.");
+  };
+
   // Filter codex
   const filteredNuma = useMemo(() => {
     return numaList.filter(n => {
@@ -1544,7 +2086,9 @@ export default function App() {
                 fontFamily: 'Courier New, monospace'
               }}
             >
-              {encounterNuma ? (
+              {!prologueComplete && prologueStep !== 5 ? (
+                renderPrologueViewport()
+              ) : encounterNuma ? (
                 /* PREMIUM RETRO TURN-BASED COMBAT VIEWPORT (POKÉMON RED LEVEL) */
                 <div 
                   className={`flex-grow flex flex-col justify-between p-2.5 relative z-10 select-none min-h-[340px] text-xs font-mono transition-all duration-150 ${isScreenFlashing ? 'bg-white invert' : ''}`}
@@ -2054,6 +2598,11 @@ export default function App() {
               <div className="flex flex-row sm:flex-col gap-2 w-full sm:w-auto">
                 <button 
                   onClick={() => {
+                    if (!prologueComplete) {
+                      playSound('click');
+                      showToast("🔒 Locked! Finish Blas's Prologue first.");
+                      return;
+                    }
                     playSound('click');
                     setCurrentIslandIndex((prev) => (prev + 1) % ISLANDS.length);
                     setGbMessage(`Select: Changed island map!`);
@@ -2063,7 +2612,14 @@ export default function App() {
                   <MapPin className="w-3.5 h-3.5 text-emerald-400" /> Switch map
                 </button>
                 <button 
-                  onClick={handleBuyVessel}
+                  onClick={() => {
+                    if (!prologueComplete) {
+                      playSound('click');
+                      showToast("🔒 Locked! Finish Blas's Prologue first.");
+                      return;
+                    }
+                    handleBuyVessel();
+                  }}
                   className="flex-1 py-2 px-4 bg-[#1b261d] hover:bg-[#253428] text-white border border-[#2d392e] text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-1.5"
                 >
                   <Coins className="w-3.5 h-3.5 text-yellow-500" /> Buy Clay Vessel (-10 Vala)
@@ -3256,17 +3812,25 @@ export default function App() {
               </div>
 
               {/* Durable Save State Restorer Control */}
-              <div className="p-5 bg-red-950/20 rounded-2xl border border-red-950/40 space-y-3">
-                <h4 className="text-xs uppercase tracking-[0.2em] font-black text-rose-400">Ledger Memory Management</h4>
-                <p className="text-[11px] text-rose-300/80 leading-relaxed font-mono">
-                  Wipe all active browser local storage state variables and restore the original standard GBC ledger progression. This action is irreversible.
+              <div className="p-5 bg-[#1b261d] rounded-2xl border border-[#2d392e] space-y-3">
+                <h4 className="text-xs uppercase tracking-[0.2em] font-black text-emerald-400">Ledger Memory Management</h4>
+                <p className="text-[11px] text-[#86a188] leading-relaxed font-mono">
+                  Wipe active state variables to discover Blas's original 9-year-old story in Ravali Quarter, help customers, and activate your first Sana Loop companion! Or do a full sandbox wipe.
                 </p>
-                <button
-                  onClick={handleResetProgress}
-                  className="py-2 px-4 bg-red-950/40 hover:bg-red-900/50 border border-red-900/50 text-rose-400 rounded-xl text-xs font-bold transition-all w-full tracking-wider uppercase"
-                >
-                  Return Ledger to Ancient Currents
-                </button>
+                <div className="flex flex-col gap-2 mt-2">
+                  <button
+                    onClick={handleReplayPrologue}
+                    className="py-2.5 px-4 bg-emerald-800 hover:bg-emerald-700 border border-emerald-950 text-white rounded-xl text-xs font-black transition-all w-full tracking-wider uppercase shadow-md flex items-center justify-center gap-1.5"
+                  >
+                    ⏩ Play/Replay Retro Prologue Story
+                  </button>
+                  <button
+                    onClick={handleResetProgress}
+                    className="py-2 px-4 bg-red-950/20 hover:bg-red-900/40 border border-red-900/50 text-rose-400 rounded-xl text-xs font-bold transition-all w-full tracking-wider uppercase"
+                  >
+                    Full Reset (Standard Sandbox defaults)
+                  </button>
+                </div>
               </div>
 
             </div>
