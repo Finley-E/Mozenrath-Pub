@@ -1,11 +1,4 @@
-
-import { GoogleGenAI, Type } from "@google/genai";
-
 export class GeminiService {
-  private static async getClient() {
-    return new GoogleGenAI({ apiKey: process.env.API_KEY });
-  }
-
   static async generateVideo(params: {
     prompt: string;
     resolution: '720p' | '1080p';
@@ -13,82 +6,115 @@ export class GeminiService {
     image?: string;
     onProgress: (status: string) => void;
   }): Promise<string | undefined> {
-    const ai = await this.getClient();
-    
     try {
-      params.onProgress("Initializing session...");
-      
-      let operation = await ai.models.generateVideos({
-        model: 'veo-3.1-fast-generate-preview',
-        prompt: params.prompt,
-        image: params.image ? {
-          imageBytes: params.image.split(',')[1] || params.image,
-          mimeType: 'image/png'
-        } : undefined,
-        config: {
-          numberOfVideos: 1,
+      params.onProgress("Initializing video generation server-side...");
+
+      // 1. Request starting operation
+      const response = await fetch('/api/gemini/generate-video', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          prompt: params.prompt,
           resolution: params.resolution,
-          aspectRatio: params.aspectRatio
-        }
+          aspectRatio: params.aspectRatio,
+          image: params.image
+        })
       });
 
-      params.onProgress("Processing render nodes...");
-
-      while (!operation.done) {
-        await new Promise(resolve => setTimeout(resolve, 5000));
-        operation = await ai.operations.getVideosOperation({ operation: operation });
-        params.onProgress("Rendering high-quality frames...");
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || `HTTP error ${response.status}`);
       }
 
-      const downloadLink = operation.response?.generatedVideos?.[0]?.video?.uri;
-      if (!downloadLink) throw new Error("No video generated");
+      const { operationName } = await response.json();
+      if (!operationName) {
+        throw new Error("No operation created by the server.");
+      }
 
-      params.onProgress("Finalizing asset...");
-      const finalResponse = await fetch(`${downloadLink}&key=${process.env.API_KEY}`);
-      const blob = await finalResponse.blob();
+      params.onProgress("Asset rendering started...");
+
+      // 2. Poll status
+      let done = false;
+      let attempt = 0;
+      while (!done) {
+        attempt++;
+        await new Promise(resolve => setTimeout(resolve, 5000));
+        
+        params.onProgress(`Rendering frames (pass ${attempt})...`);
+
+        const statusResponse = await fetch('/api/gemini/video-status', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ operationName })
+        });
+
+        if (!statusResponse.ok) {
+          throw new Error(`Failed to poll status: HTTP ${statusResponse.status}`);
+        }
+
+        const statusData = await statusResponse.json();
+        if (statusData.error) {
+          throw new Error(statusData.error.message || "Operation failed with rendering error");
+        }
+        done = !!statusData.done;
+      }
+
+      // 3. Download
+      params.onProgress("Downloading final asset stream...");
+      const downloadResponse = await fetch('/api/gemini/video-download', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ operationName })
+      });
+
+      if (!downloadResponse.ok) {
+        throw new Error(`Failed to stream download: HTTP ${downloadResponse.status}`);
+      }
+
+      const blob = await downloadResponse.blob();
       return URL.createObjectURL(blob);
     } catch (error: any) {
       console.error("Video Generation Error:", error);
-      if (error.message?.includes("Requested entity was not found")) {
-        throw new Error("KEY_EXPIRED");
-      }
       throw error;
     }
   }
 
   static async generateSocialMetadata(prompt: string, platform: string): Promise<{caption: string, tags: string[]}> {
-    const ai = await this.getClient();
-    const response = await ai.models.generateContent({
-      model: 'gemini-3-flash-preview',
-      contents: `Generate a viral caption and 5 relevant hashtags for ${platform} based on this video content: "${prompt}". Format as JSON with "caption" and "tags" keys.`,
-      config: {
-        responseMimeType: "application/json",
-        responseSchema: {
-          type: Type.OBJECT,
-          properties: {
-            caption: { type: Type.STRING },
-            tags: { type: Type.ARRAY, items: { type: Type.STRING } }
-          },
-          required: ["caption", "tags"]
-        }
-      }
-    });
     try {
-      return JSON.parse(response.text);
-    } catch {
+      const response = await fetch('/api/gemini/social-metadata', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt, platform })
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error ${response.status}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error("Metadata Generation Error:", error);
       return { caption: `New asset generated for ${platform}! #AI #Creative`, tags: ["AI", "NovaRender"] };
     }
   }
 
   static async refinePrompt(rawPrompt: string): Promise<string> {
-    const ai = await this.getClient();
-    const response = await ai.models.generateContent({
-      model: 'gemini-3-flash-preview',
-      contents: `Enhance this video production prompt for high-quality cinematic output: "${rawPrompt}". Output only the refined prompt text.`,
-      config: {
-          thinkingConfig: { thinkingBudget: 0 }
+    try {
+      const response = await fetch('/api/gemini/refine-prompt', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt: rawPrompt })
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error ${response.status}`);
       }
-    });
-    return response.text || rawPrompt;
+
+      const data = await response.json();
+      return data.refined || rawPrompt;
+    } catch (error) {
+      console.error("Prompt Refinement Error:", error);
+      return rawPrompt;
+    }
   }
 }

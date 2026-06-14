@@ -1,7 +1,8 @@
 {
-  "name": "NovaRender AI Dashboard",
-  "description": "A high-performance creative production pipeline powered by Gemini. Generate, render, and manage AI video content with enterprise-grade controls.",
-  "requestFramePermissions": [
-    "camera"
+  "name": "Mascarene Civilization",
+  "description": "An interactive Game Boy Color-styled RPG exploration game set in the Munu Archipelago. Gather, cook, forge companions, and decipher a proto-language inside a simulated retro console.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
   ]
 }
