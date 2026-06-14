@@ -410,6 +410,7 @@ export default function App() {
   // Search filter inside Sanu Ledger
   const [codexSearch, setCodexSearch] = useState("");
   const [codexClassFilter, setCodexClassFilter] = useState<string>("All");
+  const [selectedCodexNuma, setSelectedCodexNuma] = useState<Numa | null>(null);
 
   const activePalette = PALETTES[currentPaletteId];
 
@@ -2424,78 +2425,485 @@ export default function App() {
                 <BookMarked className="w-6 h-6 text-[#4c6c4c]" />
               </div>
 
-              {/* SECTION A: NUMA CODEX LIST */}
-              <div className="space-y-4">
-                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-                  <h4 className="text-xs uppercase tracking-[0.2em] font-black text-rose-400">Classified Numa Indexes</h4>
-                  
-                  {/* Codex filters */}
-                  <div className="flex flex-wrap gap-2 w-full sm:w-auto">
-                    <select
-                      value={codexClassFilter}
-                      onChange={(e) => setCodexClassFilter(e.target.value)}
-                      className="bg-[#1b261d] border border-[#2d392e] text-xs px-2.5 py-1.5 rounded-lg text-[#eff6ee]"
+              {/* SECTION A: NUMA CODEX LIST OR FULL INSPECTION PANEL */}
+              {selectedCodexNuma ? (
+                <div className="space-y-6 bg-[#121913] p-5 rounded-2xl border border-[#2d392e] animate-in slide-in-from-bottom-2 duration-300">
+                  {/* Inspection Header */}
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#2d392e]/60 pb-3">
+                    <button
+                      onClick={() => {
+                        playSound('click');
+                        setSelectedCodexNuma(null);
+                      }}
+                      className="px-3 py-1.5 bg-[#1b261d] hover:bg-[#202c22] border border-[#2d392e] rounded-xl text-xs font-mono font-bold flex items-center gap-1 text-[#86a188] hover:text-[#eff6ee] transition-all"
                     >
-                      <option value="All">All element types</option>
-                      {Object.values(NumaClass).map(cls => (
-                        <option key={cls} value={cls}>{cls}</option>
-                      ))}
-                    </select>
-                    
-                    <div className="relative flex-grow sm:flex-grow-0">
-                      <input 
-                        type="search"
-                        placeholder="Search name/habitat..."
-                        value={codexSearch}
-                        onChange={(e) => setCodexSearch(e.target.value)}
-                        className="w-full bg-[#1b261d] border border-[#2d392e] text-xs px-3 py-1.5 pl-8 rounded-lg text-[#eff6ee] placeholder:text-slate-600"
-                      />
-                      <Search className="w-3.5 h-3.5 text-slate-600 absolute left-2.5 top-2.5" />
+                      ← Back to Numa List
+                    </button>
+                    <div className="text-right">
+                      <span className="text-[9px] font-mono uppercase bg-emerald-950 text-emerald-400 px-2.5 py-0.5 rounded-full border border-emerald-900/30">
+                        Classified Ledger Analyzer
+                      </span>
                     </div>
                   </div>
-                </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-[350px] overflow-y-auto pr-2 custom-scrollbar">
-                  {filteredNuma.map((num) => {
-                    const isDiscovered = discoveredNuma.includes(num.id);
-                    return (
-                      <div 
-                        key={num.id} 
-                        className={`p-4 rounded-2xl border transition-all ${
-                          isDiscovered 
-                          ? 'bg-[#1b261d] border-[#2d392e]' 
-                          : 'bg-[#121913] border-[#1d261e] opacity-40'
-                        }`}
-                      >
-                        <div className="flex justify-between items-start">
-                          <div>
-                            <span className="text-[10px] font-mono font-bold text-slate-500">ID {num.id}</span>
-                            <h5 className="text-sm font-black uppercase text-[#eff6ee]">
-                              {isDiscovered ? num.name : "???"}
-                            </h5>
-                            <span className="text-[8px] uppercase tracking-wider text-[#86a188] block">
-                              {num.class} | {num.stage}
-                            </span>
+                  {/* Top Stats Overview Panel */}
+                  <div className="grid grid-cols-1 md:grid-cols-12 gap-5">
+                    {/* Visual Sprite Column */}
+                    <div className="md:col-span-5 bg-[#1a251b] p-4 rounded-xl border border-[#2d392e]/70 flex flex-col items-center justify-center text-center relative overflow-hidden">
+                      <div className="absolute inset-0 bg-grid opacity-5 pointer-events-none" />
+                      
+                      {/* Big Emoji Sprite with Animation */}
+                      <div className="w-20 h-20 rounded-full border-2 border-dashed border-[#4c6c4c] flex items-center justify-center bg-black/30 shadow-inner relative animate-bounce mb-3">
+                        <span className="text-4xl">
+                          {selectedCodexNuma.class === NumaClass.FOREST && "🌱"}
+                          {selectedCodexNuma.class === NumaClass.REEF && "🪸"}
+                          {selectedCodexNuma.class === NumaClass.OCEAN && "🐬"}
+                          {selectedCodexNuma.class === NumaClass.VOLCANO && "🔥"}
+                          {selectedCodexNuma.class === NumaClass.WIND && "🦅"}
+                          {selectedCodexNuma.class === NumaClass.CAVE && "💎"}
+                          {selectedCodexNuma.class === NumaClass.MARSH && "🐊"}
+                          {selectedCodexNuma.class === NumaClass.NIGHT && "🌌"}
+                          {selectedCodexNuma.class === NumaClass.ANCIENT && "🏺"}
+                          {selectedCodexNuma.class === NumaClass.SPIRIT && "👻"}
+                        </span>
+                      </div>
+
+                      <span className="text-[10px] font-mono font-black text-slate-500 uppercase tracking-widest">
+                        Index No. {selectedCodexNuma.id}
+                      </span>
+                      <h4 className="text-xl font-black uppercase text-[#eff6ee] tracking-wider mt-1">
+                        {selectedCodexNuma.name}
+                      </h4>
+                      <span className="text-[10px] bg-emerald-800/20 text-[#eff6ee] px-3 py-1 rounded-full uppercase font-bold tracking-wider mt-2 border border-emerald-800/40">
+                        {selectedCodexNuma.stage} stage
+                      </span>
+                      <span className="text-[9px] text-[#86a188] uppercase font-mono mt-1 font-bold">
+                        Element class: {selectedCodexNuma.class}
+                      </span>
+                    </div>
+
+                    {/* Base Stats & Nutritional Favorites Column */}
+                    <div className="md:col-span-7 flex flex-col justify-between space-y-4">
+                      {/* RPG Base Stats Indicators */}
+                      <div className="bg-[#161e17] p-3.5 rounded-xl border border-[#2e3b2f] space-y-2.5">
+                        <h5 className="text-[10px] uppercase tracking-[0.15em] font-black text-rose-400">
+                          Resonant Base Statistics
+                        </h5>
+                        
+                        <div className="grid grid-cols-3 gap-2 text-center">
+                          <div className="bg-black/20 p-2 rounded border border-[#2d392e]/40">
+                            <span className="block text-slate-500 uppercase text-[8px] font-mono">Memory max</span>
+                            <span className="text-[#eff6ee] font-black text-sm">{selectedCodexNuma.baseStats.memory}</span>
                           </div>
-                          <span className="text-xl">{isDiscovered ? "🐾" : "❓"}</span>
+                          <div className="bg-black/20 p-2 rounded border border-[#2d392e]/40">
+                            <span className="block text-slate-500 uppercase text-[8px] font-mono">Attack power</span>
+                            <span className="text-[#eff6ee] font-black text-sm">{selectedCodexNuma.baseStats.current}</span>
+                          </div>
+                          <div className="bg-black/20 p-2 rounded border border-[#2d392e]/40">
+                            <span className="block text-slate-500 uppercase text-[8px] font-mono">Reson. defense</span>
+                            <span className="text-[#eff6ee] font-black text-sm">{selectedCodexNuma.baseStats.resonance}</span>
+                          </div>
                         </div>
 
-                        {isDiscovered ? (
-                          <div className="mt-3 text-[11px] text-[#86a188] leading-tight space-y-1.5">
-                            <p><strong>Habitat:</strong> {num.habitat}</p>
-                            <p><strong>Behavior:</strong> {num.behavior}</p>
-                            <p className="text-[10px] bg-emerald-900/10 text-emerald-400 p-1.5 rounded border border-emerald-900/25">
-                              <strong>Ecology:</strong> {num.ecologicalRole}
-                            </p>
+                        {/* Spark Stat bars */}
+                        <div className="space-y-1 pt-1.5">
+                          <div className="flex justify-between text-[8px] font-mono text-[#86a188]">
+                            <span>Life Force Reservoir</span>
+                            <span>{selectedCodexNuma.baseStats.memory} Memory</span>
                           </div>
-                        ) : (
-                          <p className="text-[10px] text-slate-600 italic mt-3">This memory current remains undiscovered. Search Lovi or other maps to welcome them!</p>
-                        )}
+                          <div className="h-1 bg-[#121913] rounded-full overflow-hidden">
+                            <div className="h-full bg-emerald-500" style={{ width: `${Math.min(100, (selectedCodexNuma.baseStats.memory / 140) * 100)}%` }} />
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Sweet Food Favorites Nutritionists */}
+                      <div className="bg-[#161e17] p-3.5 rounded-xl border border-[#2e3b2f] space-y-2">
+                        <h5 className="text-[10px] uppercase tracking-[0.15em] font-black text-amber-500 flex items-center gap-1">
+                          🎁 Nutrient Food Favorites
+                        </h5>
+                        <p className="text-[10px] text-slate-400 italic">
+                          Feeding these specific items in active companions menu boosts Bond by +25 and heals to full!
+                        </p>
+                        
+                        <div className="flex flex-wrap gap-1.5">
+                          {foodItems.filter(f => selectedCodexNuma.favoriteFoodIds.includes(f.id)).map(food => (
+                            <div 
+                              key={food.id} 
+                              className="text-[9px] bg-amber-950/20 text-amber-300 px-2 py-0.5 rounded border border-amber-900/45 font-mono font-bold flex items-center gap-1"
+                              title={`${food.effect} - Value ${food.valaValue}`}
+                            >
+                              🍎 {food.name}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Ecological Habitation & Behavioral Patterns */}
+                  <div className="bg-[#161e17]/60 p-4 rounded-xl border border-[#2d392e]/50 space-y-2">
+                    <h5 className="text-[10px] uppercase tracking-[0.15em] font-black text-cyan-400">
+                      Ethology & Ecological Observation
+                    </h5>
+                    <div className="text-[11px] text-[#86a188] leading-relaxed space-y-2">
+                      <p>
+                        <strong>🏠 Regional habitat:</strong> {selectedCodexNuma.habitat}
+                      </p>
+                      <p>
+                        <strong>💤 Behavioral habits:</strong> {selectedCodexNuma.behavior}
+                      </p>
+                      <p className="text-[10.5px] bg-[#1a2d1e] text-emerald-450 text-emerald-400/90 p-2 rounded-lg border border-emerald-900/35 leading-tight">
+                        <strong>🌳 Niche Role:</strong> {selectedCodexNuma.ecologicalRole}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Interactive Habitat Map block */}
+                  {(() => {
+                    const getIslandMapData = (islandName: string) => {
+                      if (islandName === "Lovi Canopy") return { map: MAP_LOVI, id: "lovi", color: "#4c6c4c", name: "Lovi Canopy" };
+                      if (islandName === "Koru Basalt") return { map: MAP_KORU, id: "koru", color: "#b91c1c", name: "Koru Basalt" };
+                      if (islandName === "Mase Shallows") return { map: MAP_MASE, id: "mase", color: "#0d9488", name: "Mase Shallows" };
+                      if (islandName === "Wesa High Lands") return { map: MAP_WESA, id: "wesa", color: "#0284c7", name: "Wesa High Lands" };
+                      return { map: MAP_LOVI, id: "lovi", color: "#4c6c4c", name: "Lovi Canopy" };
+                    };
+                    
+                    const islandData = getIslandMapData(selectedCodexNuma.primaryIsland);
+                    return (
+                      <div className="bg-[#121913] p-4 rounded-xl border border-[#2d392e] flex flex-col items-center">
+                        <div className="text-[10px] uppercase font-mono font-bold text-slate-400 mb-2.5 flex items-center gap-1">
+                          <MapPin className="w-3.5 h-3.5 text-rose-500 animate-bounce" /> Habitat Map Radar: {islandData.name} Region
+                        </div>
+                        <div className="grid gap-[1.5px] border-2 border-stone-800 p-1 bg-black/60 rounded-xl max-w-full overflow-x-auto" style={{ gridTemplateColumns: 'repeat(16, minmax(0, 1fr))' }}>
+                          {islandData.map.map((row, rIdx) => 
+                            row.map((cell, cIdx) => {
+                              let bgClass = "bg-[#181f19]";
+                              let iconSymbol = null;
+                              
+                              if (cell === 1) bgClass = "bg-emerald-950 border border-emerald-900/35"; // Forest
+                              if (cell === 2) bgClass = "bg-blue-950 border border-blue-900/35"; // Water
+                              if (cell === 3) bgClass = "bg-orange-950 border border-orange-900/35"; // Lava
+                              if (cell === 4) bgClass = "bg-sky-950 border border-sky-900/35"; // Wind
+                              if (cell === 7) bgClass = "bg-amber-600/30 border border-amber-600/50"; // Shrine
+                              if (cell === 6) bgClass = "bg-yellow-900/10"; // Food Node
+                              
+                              // Highlight grass spot (cell === 5) as spawn habitats
+                              const isSpawnHabitat = cell === 5;
+                              if (isSpawnHabitat) {
+                                bgClass = "bg-emerald-500 ring-2 ring-yellow-400 animate-pulse scale-95 z-10 flex border border-emerald-400";
+                                iconSymbol = "🌾";
+                              }
+                              if (cell === 7) iconSymbol = "⛩️";
+                              
+                              return (
+                                <div 
+                                  key={`${rIdx}-${cIdx}`} 
+                                  className={`w-3.5 h-3.5 sm:w-4 sm:h-4 rounded-sm transition-all duration-300 ${bgClass} flex items-center justify-center text-[7px]`}
+                                  title={isSpawnHabitat ? "Active Spawn Habitat Spot" : `Coordinates: X:${cIdx}, Y:${rIdx}`}
+                                >
+                                  {iconSymbol}
+                                </div>
+                              );
+                            })
+                          )}
+                        </div>
+                        
+                        {/* Map Legend */}
+                        <div className="flex flex-wrap justify-center gap-x-3 gap-y-1.5 mt-3 text-[8px] font-mono text-[#86a188] max-w-md">
+                          <span className="flex items-center gap-1">
+                            <span className="w-2 h-2 rounded-sm bg-[#121913] border border-[#2d392e]" /> Path
+                          </span>
+                          <span className="flex items-center gap-1">
+                            <span className="w-2 h-2 rounded-sm bg-emerald-500 ring-1 ring-yellow-400 flex items-center justify-center text-[6px]">🌾</span> Active Spawn Spot
+                          </span>
+                          <span className="flex items-center gap-1">
+                            <span className="w-2 h-2 rounded bg-emerald-950" /> Forest Canopy
+                          </span>
+                          <span className="flex items-center gap-1">
+                            <span className="w-2 h-2 rounded bg-blue-950" /> Sea Lagoon
+                          </span>
+                          <span className="flex items-center gap-1">
+                            <span className="w-2 h-2 rounded bg-orange-950" /> Basalt Lava
+                          </span>
+                          <span className="flex items-center gap-1">
+                            <span className="w-2 h-2 rounded bg-sky-950" /> Flute Cliff
+                          </span>
+                          <span className="flex items-center gap-1">
+                            <span className="w-2 h-2 rounded bg-amber-600/30 flex items-center justify-center text-[6px]">⛩️</span> Shrine
+                          </span>
+                        </div>
                       </div>
                     );
-                  })}
+                  })()}
+
+                  {/* Evolution Line flow diagram with visual indicators for requirements */}
+                  <div className="bg-[#121913] p-4 rounded-xl border border-[#2d392e] space-y-3.5">
+                    <h5 className="text-[10px] uppercase tracking-[0.14em] font-black text-rose-400 text-center flex items-center justify-center gap-1 font-mono">
+                      🧬 Complete Evolution Line & Requirements Tracer
+                    </h5>
+
+                    {(() => {
+                      const getEvolutionLine = (num: Numa) => {
+                        let current = num;
+                        let safety = 0;
+                        while (current.evolutionOriginId && safety < 10) {
+                          const origin = numaList.find(n => n.id === current.evolutionOriginId);
+                          if (!origin) break;
+                          current = origin;
+                          safety++;
+                        }
+                        const line: Numa[] = [current];
+                        safety = 0;
+                        while (current.evolutionTargetId && safety < 10) {
+                          const target = numaList.find(n => n.id === current.evolutionTargetId);
+                          if (!target) break;
+                          line.push(target);
+                          current = target;
+                          safety++;
+                        }
+                        return line;
+                      };
+
+                      const evoLine = getEvolutionLine(selectedCodexNuma);
+                      
+                      return (
+                        <div className="flex flex-col lg:flex-row items-center justify-center gap-4 py-2">
+                          {evoLine.map((item, idx) => {
+                            const isItemDiscovered = discoveredNuma.includes(item.id);
+                            const isCurrentSelected = selectedCodexNuma.id === item.id;
+                            const activeCompOfItem = activeCompanions.find(c => c.numaId === item.id);
+                            
+                            return (
+                              <React.Fragment key={item.id}>
+                                {/* Evolution Card Node */}
+                                <div 
+                                  onClick={() => {
+                                    if (isItemDiscovered) {
+                                      playSound('click');
+                                      setSelectedCodexNuma(item);
+                                    } else {
+                                      playSound('click');
+                                      showToast("⚠️ Locked: This companion stage has not been discovered yet!");
+                                    }
+                                  }}
+                                  className={`flex-1 p-3.5 rounded-xl border text-center transition-all min-w-[130px] w-full lg:w-auto ${
+                                    isCurrentSelected 
+                                      ? 'bg-rose-950/25 border-rose-500 ring-2 ring-rose-500/30' 
+                                      : isItemDiscovered 
+                                        ? 'bg-[#1b261d] border-[#2d392e] hover:border-emerald-500/60 cursor-pointer hover:bg-[#202c21]' 
+                                        : 'bg-[#121913]/90 border-[#1c241d]/80 opacity-45'
+                                  }`}
+                                >
+                                  <div className="text-[14px] mb-1">
+                                    {isItemDiscovered ? (
+                                      (() => {
+                                        if (item.class === NumaClass.FOREST) return "🌱";
+                                        if (item.class === NumaClass.REEF) return "🪸";
+                                        if (item.class === NumaClass.OCEAN) return "🐬";
+                                        if (item.class === NumaClass.VOLCANO) return "🔥";
+                                        if (item.class === NumaClass.WIND) return "🦅";
+                                        if (item.class === NumaClass.CAVE) return "💎";
+                                        if (item.class === NumaClass.MARSH) return "🐊";
+                                        if (item.class === NumaClass.NIGHT) return "🌌";
+                                        if (item.class === NumaClass.ANCIENT) return "🏺";
+                                        if (item.class === NumaClass.SPIRIT) return "👻";
+                                        return "🐾";
+                                      })()
+                                    ) : (
+                                      "❓"
+                                    )}
+                                  </div>
+                                  
+                                  <div className="text-[7.5px] font-mono font-bold text-slate-500 uppercase">
+                                    ID {item.id}
+                                  </div>
+                                  <div className="text-[11px] font-extrabold uppercase text-[#eff6ee] tracking-wide truncate">
+                                    {isItemDiscovered ? item.name : "???"}
+                                  </div>
+                                  <div className="text-[8px] font-bold text-[#86a188] uppercase mt-0.5">
+                                    {item.stage} suffix
+                                  </div>
+
+                                  {/* User Companion specific indicators */}
+                                  {isItemDiscovered && activeCompOfItem ? (
+                                    <div className="mt-2 text-[8px] font-mono text-cyan-400 bg-cyan-950/20 p-1 rounded border border-cyan-900/30">
+                                      ✊ Partner active<br/>
+                                      Bond: <span className="font-extrabold">{activeCompOfItem.bond}/100</span>
+                                    </div>
+                                  ) : isItemDiscovered && (
+                                    <div className="mt-2 text-[7.5px] font-mono text-slate-500 uppercase">
+                                      Not in active pack
+                                    </div>
+                                  )}
+                                </div>
+
+                                {/* Arrow & Requirement Indicator (Rendered between nodes) */}
+                                {idx < evoLine.length - 1 && (
+                                  <div className="flex flex-col items-center justify-center text-center px-1 lg:flex-row lg:gap-2">
+                                    {/* Arrow icon */}
+                                    <span className="text-xl rotate-90 lg:rotate-0 text-[#2d392e]/80 animate-pulse">
+                                      ➔
+                                    </span>
+                                    
+                                    {/* Requirement bubble */}
+                                    <div className="bg-[#1b261d]/90 p-2 rounded-lg border border-[#2d392e]/70 text-[8.5px] font-mono max-w-[140px]">
+                                      <span className="text-rose-400 block font-bold uppercase tracking-wider text-[7px] mb-0.5">
+                                        Requirements
+                                      </span>
+                                      <div className="space-y-1">
+                                        <div className="flex items-center justify-center gap-1 font-bold text-[#eff6ee]">
+                                          💚 Trust Level 100
+                                        </div>
+                                        
+                                        {/* Dynamic current progress indicator */}
+                                        {(() => {
+                                          const prevStageClassComp = activeCompanions.find(c => c.numaId === item.id);
+                                          if (prevStageClassComp) {
+                                            const ready = prevStageClassComp.bond >= 100;
+                                            return (
+                                              <div className="pt-0.5 border-t border-[#2d392e] text-[7.5px]">
+                                                <span>Active: {prevStageClassComp.bond}/100</span>
+                                                <div className={`mt-0.5 font-sans font-bold ${ready ? 'text-emerald-400' : 'text-amber-500'}`}>
+                                                  {ready ? "✅ Primed!" : "⏳ Feed dishes!"}
+                                                </div>
+                                              </div>
+                                            );
+                                          }
+                                          return (
+                                            <span className="text-[7px] text-slate-500 uppercase block">
+                                              No partner companion
+                                            </span>
+                                          );
+                                        })()}
+                                      </div>
+                                    </div>
+                                  </div>
+                                )}
+                              </React.Fragment>
+                            );
+                          })}
+                        </div>
+                      );
+                    })()}
+                  </div>
+
+                  {/* Back to List row */}
+                  <div className="pt-2">
+                    <button
+                      onClick={() => {
+                        playSound('click');
+                        setSelectedCodexNuma(null);
+                      }}
+                      className="w-full py-2 bg-stone-700 hover:bg-stone-600 border border-stone-800 rounded-xl text-xs uppercase font-mono font-bold tracking-wider text-white text-center"
+                    >
+                      ◀ Back to Classified Catalog List
+                    </button>
+                  </div>
                 </div>
-              </div>
+              ) : (
+                <div className="space-y-4">
+                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                    <h4 className="text-xs uppercase tracking-[0.2em] font-black text-rose-400">Classified Numa Indexes (Tap to Inspect)</h4>
+                    
+                    {/* Codex filters */}
+                    <div className="flex flex-wrap gap-2 w-full sm:w-auto">
+                      <select
+                        value={codexClassFilter}
+                        onChange={(e) => setCodexClassFilter(e.target.value)}
+                        className="bg-[#1b261d] border border-[#2d392e] text-xs px-2.5 py-1.5 rounded-lg text-[#eff6ee]"
+                      >
+                        <option value="All">All element types</option>
+                        {Object.values(NumaClass).map(cls => (
+                          <option key={cls} value={cls}>{cls}</option>
+                        ))}
+                      </select>
+                      
+                      <div className="relative flex-grow sm:flex-grow-0">
+                        <input 
+                          type="search"
+                          placeholder="Search name/habitat..."
+                          value={codexSearch}
+                          onChange={(e) => setCodexSearch(e.target.value)}
+                          className="w-full bg-[#1b261d] border border-[#2d392e] text-xs px-3 py-1.5 pl-8 rounded-lg text-[#eff6ee] placeholder:text-slate-600"
+                        />
+                        <Search className="w-3.5 h-3.5 text-slate-600 absolute left-2.5 top-2.5" />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-[350px] overflow-y-auto pr-2 custom-scrollbar">
+                    {filteredNuma.map((num) => {
+                      const isDiscovered = discoveredNuma.includes(num.id);
+                      return (
+                        <div 
+                          key={num.id} 
+                          onClick={() => {
+                            if (isDiscovered) {
+                              playSound('click');
+                              setSelectedCodexNuma(num);
+                            } else {
+                              playSound('click');
+                              showToast("⚠️ Locked: This memory current is undiscovered on your islands!");
+                            }
+                          }}
+                          className={`p-4 rounded-2xl border transition-all ${
+                            isDiscovered 
+                            ? 'bg-[#1b261d] border-[#2d392e] cursor-pointer hover:border-emerald-500/80 hover:bg-[#202c21] hover:-translate-y-0.5 active:translate-y-0 duration-150' 
+                            : 'bg-[#121913] border-[#1d261e] opacity-40 cursor-not-allowed font-mono text-[10px]'
+                          }`}
+                        >
+                          <div className="flex justify-between items-start">
+                            <div>
+                              <span className="text-[10px] font-mono font-bold text-slate-500">ID {num.id}</span>
+                              <h5 className="text-sm font-black uppercase text-[#eff6ee]">
+                                {isDiscovered ? num.name : "???"}
+                              </h5>
+                              <span className="text-[8px] uppercase tracking-wider text-[#86a188] block">
+                                {num.class} | {num.stage}
+                              </span>
+                            </div>
+                            <div className="flex flex-col items-end gap-1">
+                              <span className="text-xl">{isDiscovered ? (
+                                (() => {
+                                  if (num.class === NumaClass.FOREST) return "🌱";
+                                  if (num.class === NumaClass.REEF) return "🪸";
+                                  if (num.class === NumaClass.OCEAN) return "🐬";
+                                  if (num.class === NumaClass.VOLCANO) return "🔥";
+                                  if (num.class === NumaClass.WIND) return "🦅";
+                                  if (num.class === NumaClass.CAVE) return "💎";
+                                  if (num.class === NumaClass.MARSH) return "🐊";
+                                  if (num.class === NumaClass.NIGHT) return "🌌";
+                                  if (num.class === NumaClass.ANCIENT) return "🏺";
+                                  if (num.class === NumaClass.SPIRIT) return "👻";
+                                  return "🐾";
+                                })()
+                              ) : "❓"}</span>
+                              {isDiscovered && (
+                                <span className="text-[7.5px] uppercase font-bold text-emerald-400/90 font-mono">
+                                  🔍 Inspect
+                                </span>
+                              )}
+                            </div>
+                          </div>
+
+                          {isDiscovered ? (
+                            <div className="mt-3 text-[11px] text-[#86a188] leading-tight space-y-1.5">
+                              <p><strong>Habitat:</strong> {num.habitat}</p>
+                              <p><strong>Behavior:</strong> {num.behavior}</p>
+                              <p className="text-[10px] bg-emerald-990/10 text-emerald-400 p-1.5 rounded border border-emerald-900/25">
+                                <strong>Ecology:</strong> {num.ecologicalRole}
+                              </p>
+                            </div>
+                          ) : (
+                            <p className="text-[10px] text-slate-600 italic mt-3 font-mono">This memory current remains undiscovered. Search Lovi or other maps to welcome them!</p>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
 
               {/* SECTION B: COMPLETE ORGANIC FOOD PANTRY & THE COOKING SIMULATOR */}
               <div className="space-y-4 pt-6 border-t border-[#2d392e]">
