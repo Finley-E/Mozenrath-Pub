@@ -32,6 +32,7 @@ import {
 import { Numa, NumaClass, EvolutionStage, FoodItem, FoodCategory, Island, VocabWord, GameState, SanuLedger } from './types';
 import { ISLANDS, VOCABULARY, FOOD_ITEMS, NUMA_ROSTER, PRIMORDIALS, validateMunuWord } from './services/mascareneData';
 import { MunuGameEngine, GbcTileType } from './lib/gameEngine';
+import { NumaEvolutionService } from './services/evolutionService';
 
 // GBC 4-Color Selective Palettes
 const PALETTES = {
@@ -210,6 +211,37 @@ export default function App() {
     const isPro = localStorage.getItem('mascarene_prologue_complete') === 'true';
     return isPro ? ["stap-01", "stap-02", "stap-03", "fora-01", "drin-01"] : [];
   });
+
+  // GAME FREAK Core Systems & Polish States
+  const [pcBoxStorage, setPcBoxStorage] = useState<{ numaId: string; bond: number; level?: number; exp?: number; currentHp?: number; stats: any; caughtAt?: string }[]>(() => {
+    const saved = localStorage.getItem('mascarene_pc_box_storage');
+    return saved !== null ? JSON.parse(saved) : [];
+  });
+  const [activeSaveSlot, setActiveSaveSlot] = useState<number | null>(() => {
+    const saved = localStorage.getItem('mascarene_active_save_slot');
+    return saved !== null ? Number(saved) : null;
+  });
+  const [showTitleScreen, setShowTitleScreen] = useState<boolean>(true);
+  const [evolvingCompanion, setEvolvingCompanion] = useState<{
+    index: number;
+    name: string;
+    targetId: string;
+    fromIcon: string;
+    toIcon: string;
+  } | null>(null);
+
+  useEffect(() => {
+    localStorage.setItem('mascarene_pc_box_storage', JSON.stringify(pcBoxStorage));
+  }, [pcBoxStorage]);
+
+  useEffect(() => {
+    if (activeSaveSlot !== null) {
+      localStorage.setItem('mascarene_active_save_slot', String(activeSaveSlot));
+    } else {
+      localStorage.removeItem('mascarene_active_save_slot');
+    }
+  }, [activeSaveSlot]);
+
   const [activeCompanions, setActiveCompanions] = useState<{ numaId: string, bond: number, stats: any }[]>(() => {
     const saved = localStorage.getItem('mascarene_active_companions');
     if (saved !== null) return JSON.parse(saved);
@@ -421,6 +453,125 @@ export default function App() {
   useEffect(() => {
     localStorage.setItem('mascarene_tq_yuma', String(tabajiQuestOrganizedYuma));
   }, [tabajiQuestOrganizedYuma]);
+
+  // --- GAME FREAK SECURE ARCHIVE SLOTS SYSTEM ---
+  const saveToSlot = (slotId: number) => {
+    try {
+      const saveData = {
+        vala,
+        koraVessels,
+        discoveredNuma,
+        discoveredFoods,
+        activeCompanions,
+        pcBoxStorage,
+        unlockedPathStones,
+        currentIslandIndex,
+        pantryInventory,
+        numaList,
+        myLegends,
+        weather,
+        timeOfDay,
+        prologueComplete,
+        prologueStep,
+        playerName,
+        collectedFragments,
+        tabajiQuestDeliveredWeya,
+        tabajiQuestTradedVala,
+        tabajiQuestOrganizedYuma,
+        savedAt: new Date().toLocaleDateString() + ' ' + new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
+      };
+      
+      localStorage.setItem(`mascarene_save_slot_${slotId}`, JSON.stringify(saveData));
+      setActiveSaveSlot(slotId);
+      showToast(`💾 Game saved to Slot ${slotId} successfully!`);
+      playSound('success');
+    } catch (err) {
+      showToast(`⚠️ Failed to write save state: ${err}`);
+      playSound('click');
+    }
+  };
+
+  const loadFromSlot = (slotId: number) => {
+    const raw = localStorage.getItem(`mascarene_save_slot_${slotId}`);
+    if (!raw) {
+      showToast(`⚠️ Slot ${slotId} is empty!`);
+      playSound('click');
+      return;
+    }
+    try {
+      const data = JSON.parse(raw);
+      if (data.vala !== undefined) setVala(data.vala);
+      if (data.koraVessels !== undefined) setKoraVessels(data.koraVessels);
+      if (data.discoveredNuma !== undefined) setDiscoveredNuma(data.discoveredNuma);
+      if (data.discoveredFoods !== undefined) setDiscoveredFoods(data.discoveredFoods);
+      if (data.activeCompanions !== undefined) setActiveCompanions(data.activeCompanions);
+      if (data.pcBoxStorage !== undefined) setPcBoxStorage(data.pcBoxStorage);
+      if (data.unlockedPathStones !== undefined) setUnlockedPathStones(data.unlockedPathStones);
+      if (data.currentIslandIndex !== undefined) setCurrentIslandIndex(data.currentIslandIndex);
+      if (data.pantryInventory !== undefined) setPantryInventory(data.pantryInventory);
+      if (data.numaList !== undefined) setNumaList(data.numaList);
+      if (data.myLegends !== undefined) setMyLegends(data.myLegends);
+      if (data.weather !== undefined) setWeather(data.weather);
+      if (data.timeOfDay !== undefined) setTimeOfDay(data.timeOfDay);
+      if (data.prologueComplete !== undefined) setPrologueComplete(data.prologueComplete);
+      if (data.prologueStep !== undefined) setPrologueStep(data.prologueStep);
+      if (data.playerName !== undefined) setPlayerName(data.playerName);
+      if (data.collectedFragments !== undefined) setCollectedFragments(data.collectedFragments);
+      if (data.tabajiQuestDeliveredWeya !== undefined) setTabajiQuestDeliveredWeya(data.tabajiQuestDeliveredWeya);
+      if (data.tabajiQuestTradedVala !== undefined) setTabajiQuestTradedVala(data.tabajiQuestTradedVala);
+      if (data.tabajiQuestOrganizedYuma !== undefined) setTabajiQuestOrganizedYuma(data.tabajiQuestOrganizedYuma);
+      
+      setActiveSaveSlot(slotId);
+      setShowTitleScreen(false);
+      showToast(`✨ Profile loaded from Slot ${slotId}!`);
+      playSound('wildEncounter');
+    } catch (e) {
+      showToast(`⚠️ Save file parsing error on Slot ${slotId}!`);
+      playSound('click');
+    }
+  };
+
+  const deleteSlot = (slotId: number) => {
+    localStorage.removeItem(`mascarene_save_slot_${slotId}`);
+    if (activeSaveSlot === slotId) {
+      setActiveSaveSlot(null);
+    }
+    showToast(`🗑️ Cleared Save Slot ${slotId}.`);
+    playSound('click');
+  };
+
+  const startNewGame = (name: string) => {
+    const trimmed = name?.trim() || 'Blas';
+    setPlayerName(trimmed);
+    setVala(0);
+    setKoraVessels(0);
+    setDiscoveredNuma([]);
+    setDiscoveredFoods([]);
+    setActiveCompanions([]);
+    setPcBoxStorage([]);
+    setUnlockedPathStones([]);
+    setCurrentIslandIndex(0);
+    setPantryInventory({});
+    setCollectedFragments(0);
+    setTabajiQuestDeliveredWeya(false);
+    setTabajiQuestTradedVala(false);
+    setTabajiQuestOrganizedYuma(false);
+    setPrologueComplete(false);
+    setPrologueStep(0);
+    setActiveSaveSlot(null);
+    setShowTitleScreen(false);
+    
+    // Clear temporary auto-saves
+    localStorage.removeItem('mascarene_prologue_complete');
+    localStorage.removeItem('mascarene_prologue_step');
+    localStorage.removeItem('mascarene_collected_fragments');
+    localStorage.removeItem('mascarene_tq_weya');
+    localStorage.removeItem('mascarene_tq_vala');
+    localStorage.removeItem('mascarene_tq_yuma');
+    
+    playSound('wildEncounter');
+    showToast(`🌌 Welcome ${trimmed}! The Sanu prologue is initiated.`);
+  };
 
   // Ravali Quarter map for the tutorial
   const MAP_RAVALI = [
@@ -1364,6 +1515,45 @@ export default function App() {
     }, 150);
   };
 
+  // Classification helper for Physical vs Special split
+  const getMoveCategory = (moveName: string): 'physical' | 'special' => {
+    const lower = moveName.toLowerCase().trim();
+    if (
+      lower.includes('slam') || 
+      lower.includes('smash') || 
+      lower.includes('tackle') || 
+      lower.includes('punch') || 
+      lower.includes('bite') || 
+      lower.includes('kick') || 
+      lower.includes('claw') || 
+      lower.includes('roll') || 
+      lower.includes('slap') ||
+      lower.includes('impact') ||
+      lower.includes('strike')
+    ) {
+      return 'physical';
+    }
+    if (
+      lower.includes('wave') || 
+      lower.includes('current') || 
+      lower.includes('whistle') || 
+      lower.includes('ray') || 
+      lower.includes('spray') || 
+      lower.includes('beam') || 
+      lower.includes('sparks') || 
+      lower.includes('mist') || 
+      lower.includes('aura') || 
+      lower.includes('wind') || 
+      lower.includes('breeze') ||
+      lower.includes('song') ||
+      lower.includes('sound')
+    ) {
+      return 'special';
+    }
+    // Length parity heuristic fallback
+    return moveName.length % 2 === 0 ? 'physical' : 'special';
+  };
+
   // 1. Choose battle ability
   const handleBattleFightMove = (move: { name: string; power: number }) => {
     if (!encounterNuma || !isBattleTurn) return;
@@ -1385,9 +1575,25 @@ export default function App() {
     setTimeout(() => setPlayerSpin(false), 420);
     triggerScreenFlash();
 
-    // Damage calculations (standard GBC mechanics)
-    const wildDefense = Math.floor(encounterNuma.baseStats.resonance * (1 + 0.12 * (battleOpponentLevel - 1)));
-    const damage = MunuGameEngine.calculateGbcDamage(compStats.level, move.power, compStats.attack, wildDefense);
+    // Damage split category
+    const moveCat = getMoveCategory(move.name);
+    
+    // Type matchup multipliers
+    const attackerClass = compStats.info?.class || "Forest";
+    const defenderClass = encounterNuma.class;
+    const typeMultiplier = MunuGameEngine.getTypeMultiplier(attackerClass, defenderClass);
+
+    // Dynamic stat selectors for Physical/Special Split
+    let attackStat = compStats.attack;
+    let defenseStat = Math.max(1, Math.floor(encounterNuma.baseStats.resonance * (1 + 0.12 * (battleOpponentLevel - 1))));
+    
+    if (moveCat === 'special') {
+      // Mental resonance replaces physical stats!
+      attackStat = compStats.defense; // Companion's resonance stat
+      defenseStat = Math.max(1, Math.floor(encounterNuma.baseStats.resonance * (1 + 0.12 * (battleOpponentLevel - 1)))); // target's resonance
+    }
+
+    const damage = MunuGameEngine.calculateGbcDamage(compStats.level, move.power, attackStat, defenseStat, typeMultiplier);
     const nextWildHp = Math.max(0, battleOpponentHp - damage);
 
     // Opponent Hit Visuals
@@ -1406,10 +1612,21 @@ export default function App() {
     }, 250);
 
     // Setup action logs
+    let effectivenessMsg = "";
+    if (typeMultiplier > 1.0) {
+      effectivenessMsg = "💥 It's super effective!";
+    } else if (typeMultiplier < 1.0) {
+      effectivenessMsg = "🌀 It's not very effective...";
+    }
+
+    const categoryLabel = moveCat === 'physical' ? "💥 Physical" : "🌀 Special";
     const actionLogs = [
-      `${compStats.info?.name} used ${move.name}!`,
-      `It resonated and calmed wild ${encounterNuma.name} for ${damage} points!`
+      `${compStats.info?.name} used ${move.name}! [${categoryLabel}]`,
+      `It resonated for ${damage} points!`
     ];
+    if (effectivenessMsg) {
+      actionLogs.push(effectivenessMsg);
+    }
     setBattleLogs(actionLogs);
     setBattleOpponentHp(nextWildHp);
 
@@ -1462,16 +1679,38 @@ export default function App() {
         setTimeout(() => {
           setEncounterNuma(null);
           setGbMessage(`Calmed wild ${encounterNuma.name}! +${valaGained} Vala.`);
+          
+          // Trigger spontaneous level-up evolution if candidate!
+          const evolvCheck = checkEvolution(battleActiveIndex, compLvl);
+          if (evolvCheck) {
+            setTimeout(() => {
+              setEvolvingCompanion(evolvCheck);
+            }, 600);
+          }
         }, 2500);
 
       } else {
         // Enemy Counterattack turn
         const wildMoves = MOVES_BY_CLASS[encounterNuma.class] || MOVES_BY_CLASS["Forest"];
         const wildMove = wildMoves[Math.floor(Math.random() * wildMoves.length)];
-        const wildAttack = Math.floor(encounterNuma.baseStats.current * (1 + 0.1 * (battleOpponentLevel - 1)));
+        
+        // Enemy physical/special category split and type multiplier
+        const wildCat = getMoveCategory(wildMove.name);
+        const wildTypeMult = MunuGameEngine.getTypeMultiplier(encounterNuma.class, compStats.info?.class || "Forest");
+
+        const wildAttackRaw = Math.floor(encounterNuma.baseStats.current * (1 + 0.1 * (battleOpponentLevel - 1)));
+        const wildResonanceRaw = Math.floor(encounterNuma.baseStats.resonance * (1 + 0.1 * (battleOpponentLevel - 1)));
+        
+        let wildAttackStat = wildAttackRaw;
+        let playerDefenseStat = compStats.defense; // physical defense (resonance)
+
+        if (wildCat === 'special') {
+          wildAttackStat = wildResonanceRaw; // Wild special attack
+          playerDefenseStat = compStats.defense; // Player special defense (resonance)
+        }
 
         // Calculate standard retro GBC counter damage using game engine
-        const counterDamage = MunuGameEngine.calculateGbcDamage(battleOpponentLevel, wildMove.power, wildAttack, compStats.defense);
+        const counterDamage = MunuGameEngine.calculateGbcDamage(battleOpponentLevel, wildMove.power, wildAttackStat, playerDefenseStat, wildTypeMult);
         const nextCompHp = Math.max(0, compStats.currentHp - counterDamage);
 
         // Enemy visual recoil
@@ -1500,12 +1739,24 @@ export default function App() {
         };
         setActiveCompanions(updatedCompanions);
 
-        setBattleLogs([
-          ...actionLogs,
-          `Wild ${encounterNuma.name} counters with ${wildMove.name}!`,
-          `${compStats.info?.name} absorbed ${counterDamage} impact!`
-        ]);
+        let wildEffectivenessMsg = "";
+        if (wildTypeMult > 1.0) {
+          wildEffectivenessMsg = "💥 It's super effective!";
+        } else if (wildTypeMult < 1.0) {
+          wildEffectivenessMsg = "🌀 It's not very effective...";
+        }
 
+        const wildCatLabel = wildCat === 'physical' ? "💥 Physical" : "🌀 Special";
+        const postAttackLogs = [
+          ...actionLogs,
+          `Wild ${encounterNuma.name} counters with ${wildMove.name}! [${wildCatLabel}]`,
+          `${compStats.info?.name} absorbed ${counterDamage} impact!`
+        ];
+        if (wildEffectivenessMsg) {
+          postAttackLogs.push(wildEffectivenessMsg);
+        }
+
+        setBattleLogs(postAttackLogs);
         triggerScreenFlash();
 
         setTimeout(() => {
@@ -1567,6 +1818,8 @@ export default function App() {
 
         // Add to active pack
         const updatedComps = [...activeCompanions];
+        let wasSentToPC = false;
+        
         if (updatedComps.length < 6) {
           updatedComps.push({
             numaId: encounterNuma.id,
@@ -1577,12 +1830,31 @@ export default function App() {
             stats: { ...encounterNuma.baseStats }
           });
           setActiveCompanions(updatedComps);
+        } else {
+          wasSentToPC = true;
+          const newBoxEntry = {
+            numaId: encounterNuma.id,
+            bond: 55,
+            level: battleOpponentLevel,
+            exp: 0,
+            currentHp: battleOpponentMaxHp,
+            stats: { ...encounterNuma.baseStats },
+            caughtAt: currentIsland.name || 'Munu Archipelago'
+          };
+          setPcBoxStorage(prev => [...prev, newBoxEntry]);
         }
 
-        setBattleLogs([
-          `Gotcha! Wild ${encounterNuma.name} accepted the bond!`,
-          `Suna threads established safely. Saved to Sanu Ledger.`
-        ]);
+        if (wasSentToPC) {
+          setBattleLogs([
+            `Gotcha! Wild ${encounterNuma.name} accepted the bond!`,
+            `Your pack limit reached (6)! Safe-transferred to Sanctuary PC Box!`
+          ]);
+        } else {
+          setBattleLogs([
+            `Gotcha! Wild ${encounterNuma.name} accepted the bond!`,
+            `Suna threads established safely. Saved to Sanu Ledger.`
+          ]);
+        }
         
         // Recycling vessel logic from Mascarene Culture
         setKoraVessels(prev => prev + 1);
@@ -1590,7 +1862,11 @@ export default function App() {
 
         setTimeout(() => {
           setEncounterNuma(null);
-          setGbMessage(`Befriended ${encounterNuma.name}! Saved in vessel.`);
+          if (wasSentToPC) {
+            setGbMessage(`Befriended ${encounterNuma.name}! Transferred to Sanctuary Box PC.`);
+          } else {
+            setGbMessage(`Befriended ${encounterNuma.name}! Saved in active pack.`);
+          }
         }, 2500);
 
       } else {
@@ -1839,43 +2115,167 @@ export default function App() {
     playSound('beep');
   };
 
+  // Helper to obtain class emoji symbol
+  const getNumaEmoji = (numaClass: string) => {
+    switch (numaClass) {
+      case "Forest": return "🌱";
+      case "Reef": return "🪸";
+      case "Ocean": return "🐬";
+      case "Volcano": return "🔥";
+      case "Wind": return "🦅";
+      case "Cave": return "💎";
+      case "Marsh": return "🐊";
+      case "Night": return "🌌";
+      case "Ancient": return "🏺";
+      case "Spirit": return "👻";
+      default: return "🐾";
+    }
+  };
+
+  // Render function for retro evolution viewport inside the emulator display
+  const renderEvolutionViewport = () => {
+    if (!evolvingCompanion) return null;
+    
+    const targetNuma = numaList.find(num => num.id === evolvingCompanion.targetId);
+    
+    return (
+      <div 
+        className="flex-grow flex flex-col justify-between p-4 relative z-50 select-none min-h-[340px] text-xs font-mono"
+        style={{ backgroundColor: '#f2f8f2', color: '#161e17' }}
+      >
+        <div className="absolute inset-0 bg-grid opacity-5 pointer-events-none" />
+        
+        <div className="text-center py-2 border-b-2 border-stone-800 text-stone-900">
+          <h3 className="text-xs uppercase tracking-widest font-black text-emerald-800 animate-pulse">
+            ⚡ RESONANCE SYNC: EVOLUTION ⚡
+          </h3>
+        </div>
+
+        {/* Big Alternating Animation Block */}
+        <div className="my-auto text-center space-y-4">
+          <div className="w-24 h-24 mx-auto border-4 border-stone-800 bg-stone-100 rounded-2xl flex items-center justify-center relative overflow-hidden shadow-inner">
+            <div className="absolute inset-0 bg-grid opacity-10" />
+            <span className="text-5xl transition-all duration-100 transform select-none scale-125 animate-bounce">
+              {evolvingFrame ? evolvingCompanion.toIcon : evolvingCompanion.fromIcon}
+            </span>
+          </div>
+
+          <div className="bg-stone-200/80 border-2 border-dashed border-stone-400 p-2 text-stone-850 rounded-xl leading-relaxed max-w-xs mx-auto text-center font-bold">
+            <p className="font-extrabold text-[12px] uppercase text-stone-900">
+              What? {evolvingCompanion.name}
+            </p>
+            <p className="text-[10px] mt-0.5 text-stone-700">Is channel-syncing their core form...</p>
+          </div>
+        </div>
+
+        {/* Emulator buttons logic */}
+        <div className="border-t-2 border-stone-800 pt-3 flex gap-2">
+          <button
+            onClick={() => {
+              // Confirm evolution!
+              const comp = activeCompanions[evolvingCompanion.index];
+              const targetN = numaList.find(num => num.id === evolvingCompanion.targetId);
+              if (comp && targetN) {
+                const updated = [...activeCompanions];
+                updated[evolvingCompanion.index] = NumaEvolutionService.calculateEvolvedCompanion(comp, targetN);
+                setActiveCompanions(updated);
+                
+                if (!discoveredNuma.includes(targetN.id)) {
+                  setDiscoveredNuma(prev => [...prev, targetN.id]);
+                }
+                
+                showToast(`✨ Congratulations! Your ${evolvingCompanion.name} evolved into ${targetN.name}! 🌟`);
+                playSound('levelUp');
+              }
+              setEvolvingCompanion(null);
+            }}
+            className="flex-1 bg-stone-850 hover:bg-stone-900 text-white border-b-4 border-stone-950 font-bold uppercase rounded p-2 text-[10px] tracking-wider active:border-b-0 active:translate-y-1 transition-all"
+          >
+            Wait (A)
+          </button>
+          
+          <button
+            onClick={() => {
+              // Press B to Cancel! Classic pocket-monster cancel!
+              showToast(`🛑 Evolution of ${evolvingCompanion.name} was cancelled!`);
+              playSound('click');
+              setEvolvingCompanion(null);
+            }}
+            className="flex-1 bg-stone-200 text-stone-800 hover:bg-stone-300 border border-stone-400 border-b-4 border-stone-500 font-bold uppercase rounded p-2 text-[10px] tracking-wider active:border-b-0 active:translate-y-1 transition-all"
+          >
+            Cancel (B)
+          </button>
+        </div>
+      </div>
+    );
+  };
+
+  // Evolution checker for leveling-up conditions
+  const checkEvolution = (companionIndex: number, levelToCheck: number) => {
+    const comp = activeCompanions[companionIndex];
+    if (!comp) return null;
+    const info = numaList.find(n => n.id === comp.numaId);
+    if (!info || !info.evolutionTargetId) return null;
+    
+    // Simulate level up state using NumaEvolutionService
+    const simulatedComp = {
+      ...comp,
+      level: levelToCheck
+    };
+
+    const result = NumaEvolutionService.evaluateEvolution(simulatedComp, numaList, unlockedPathStones);
+    if (result.canEvolve && result.targetId) {
+      const targetInfo = numaList.find(n => n.id === result.targetId);
+      if (targetInfo) {
+        return {
+          index: companionIndex,
+          name: info.name,
+          targetId: result.targetId,
+          fromIcon: getNumaEmoji(info.class),
+          toIcon: getNumaEmoji(targetInfo.class)
+        };
+      }
+    }
+    return null;
+  };
+
   // Evolution trigger room logic
   const handleEvolutionTrigger = (companionIndex: number) => {
     const companion = activeCompanions[companionIndex];
+    if (!companion) return;
     const n = numaList.find(num => num.id === companion.numaId);
     if (!n || !n.evolutionTargetId) return;
 
-    if (companion.bond < 100) {
+    // Evaluate evolution options via our centralized service
+    const result = NumaEvolutionService.evaluateEvolution(companion, numaList, unlockedPathStones);
+    if (!result.canEvolve) {
       playSound('click');
-      showToast(`⚠️ Evolution: ${n.name} needs 100 Bond to evolve (currently ${companion.bond}). Feed them dishes!`);
+      showToast(`⚠️ ${result.description}`);
       return;
     }
 
-    const evolvedNuma = numaList.find(num => num.id === n.evolutionTargetId);
+    const evolvedNuma = numaList.find(num => num.id === result.targetId);
     if (!evolvedNuma) return;
 
     playSound('evolve');
-    
-    // Update companions
-    const updated = [...activeCompanions];
-    updated[companionIndex] = {
-      ...companion,
-      numaId: evolvedNuma.id,
-      bond: 20, // resets bond slightly
-      stats: {
-        memory: evolvedNuma.baseStats.memory,
-        current: evolvedNuma.baseStats.current,
-        resonance: evolvedNuma.baseStats.resonance
-      }
-    };
-    setActiveCompanions(updated);
-    
-    if (!discoveredNuma.includes(evolvedNuma.id)) {
-      setDiscoveredNuma(prev => [...prev, evolvedNuma.id]);
-    }
-
-    showToast(`✨ Spark of Growth! Your ${n.name} has evolved into ${evolvedNuma.name}!`);
+    setEvolvingCompanion({
+      index: companionIndex,
+      name: n.name,
+      targetId: evolvedNuma.id,
+      fromIcon: getNumaEmoji(n.class),
+      toIcon: getNumaEmoji(evolvedNuma.class)
+    });
   };
+
+  // Flash effect timer for active evolution sequence
+  const [evolvingFrame, setEvolvingFrame] = useState<boolean>(false);
+  useEffect(() => {
+    if (!evolvingCompanion) return;
+    const timer = setInterval(() => {
+      setEvolvingFrame(prev => !prev);
+    }, 180);
+    return () => clearInterval(timer);
+  }, [evolvingCompanion]);
 
   // Companion Feed block
   const handleFeedCompanion = (companionIndex: number, foodId: string) => {
@@ -1899,8 +2299,7 @@ export default function App() {
     const healAmount = isFavorite ? statsObj.maxHp : 15;
     const currentHpVal = companion.currentHp !== undefined ? companion.currentHp : statsObj.maxHp;
 
-    const updated = [...activeCompanions];
-    updated[companionIndex] = {
+    const updatedCompanion = {
       ...companion,
       bond: Math.min(100, companion.bond + bondGain),
       currentHp: Math.min(statsObj.maxHp, currentHpVal + healAmount),
@@ -1909,8 +2308,129 @@ export default function App() {
         memory: companion.stats.memory + (isFavorite ? 3 : 1)
       }
     };
+
+    const updated = [...activeCompanions];
+    updated[companionIndex] = updatedCompanion;
     setActiveCompanions(updated);
     showToast(`Fed ${n.name} ${foodId.replace('stap-', '').replace('fora-', '')}! Bond +${bondGain}, healed +${healAmount} HP.`);
+
+    // Check if food feeding satisfies centralized evolution (e.g. standard stats or item catalyst!)
+    const evolResult = NumaEvolutionService.evaluateEvolution(updatedCompanion, numaList, unlockedPathStones, foodId);
+    if (evolResult.canEvolve && evolResult.targetId) {
+      const evolvedNuma = numaList.find(num => num.id === evolResult.targetId);
+      if (evolvedNuma) {
+        setTimeout(() => {
+          playSound('evolve');
+          setEvolvingCompanion({
+            index: companionIndex,
+            name: n.name,
+            targetId: evolvedNuma.id,
+            fromIcon: getNumaEmoji(n.class),
+            toIcon: getNumaEmoji(evolvedNuma.class)
+          });
+        }, 1200);
+      }
+    }
+  };
+
+  // --- PC BOX SANCTUARY COMPANIONS MANAGEMENT (Bill's PC) ---
+  const depositActiveCompanion = (idx: number) => {
+    if (activeCompanions.length <= 1) {
+      showToast("⚠️ Can't deposit! You must keep at least 1 active companion in your travel pack.");
+      playSound('click');
+      return;
+    }
+    const comp = activeCompanions[idx];
+    if (!comp) return;
+    const info = numaList.find(n => n.id === comp.numaId);
+    
+    // Transfer to PC Box storage
+    setPcBoxStorage(prev => [...prev, {
+      numaId: comp.numaId,
+      bond: comp.bond,
+      stats: comp.stats,
+      level: comp.level || 5,
+      exp: comp.exp || 0,
+      currentHp: comp.currentHp || comp.stats.memory,
+      caughtAt: currentIsland.name
+    }]);
+    
+    // Remove from active
+    setActiveCompanions(prev => prev.filter((_, i) => i !== idx));
+    showToast(`📥 Transferred ${info?.name || 'companion'} securely to Sanctuary PC Box.`);
+    playSound('success');
+  };
+
+  const withdrawBoxCompanion = (boxIdx: number) => {
+    if (activeCompanions.length >= 6) {
+      showToast("⚠️ Travel pack is full! Your active companion limit is 6.");
+      playSound('click');
+      return;
+    }
+    const comp = pcBoxStorage[boxIdx];
+    if (!comp) return;
+    const info = numaList.find(n => n.id === comp.numaId);
+    
+    // Add to active
+    setActiveCompanions(prev => [...prev, {
+      numaId: comp.numaId,
+      bond: comp.bond,
+      stats: comp.stats,
+      level: comp.level || 5,
+      exp: comp.exp || 0,
+      currentHp: comp.currentHp || comp.stats.memory
+    }]);
+    
+    // Remove from box
+    setPcBoxStorage(prev => prev.filter((_, i) => i !== boxIdx));
+    showToast(`📤 Withdrew ${info?.name || 'companion'} from the PC storage Box!`);
+    playSound('success');
+  };
+
+  const swapBoxAndActive = (boxIdx: number, activeIdx: number) => {
+    const boxComp = pcBoxStorage[boxIdx];
+    const activeComp = activeCompanions[activeIdx];
+    if (!boxComp || !activeComp) return;
+
+    const boxInfo = numaList.find(n => n.id === boxComp.numaId);
+    const activeInfo = numaList.find(n => n.id === activeComp.numaId);
+
+    const newActiveList = [...activeCompanions];
+    newActiveList[activeIdx] = {
+      numaId: boxComp.numaId,
+      bond: boxComp.bond,
+      stats: boxComp.stats,
+      level: boxComp.level || 5,
+      exp: boxComp.exp || 0,
+      currentHp: boxComp.currentHp || boxComp.stats.memory
+    };
+
+    const newBoxList = [...pcBoxStorage];
+    newBoxList[boxIdx] = {
+      numaId: activeComp.numaId,
+      bond: activeComp.bond,
+      stats: activeComp.stats,
+      level: activeComp.level || 5,
+      exp: activeComp.exp || 0,
+      currentHp: activeComp.currentHp || activeComp.stats.memory,
+      caughtAt: currentIsland.name
+    };
+
+    setActiveCompanions(newActiveList);
+    setPcBoxStorage(newBoxList);
+
+    showToast(`🔄 Swapped active ${activeInfo?.name} with boxed ${boxInfo?.name}!`);
+    playSound('success');
+  };
+
+  const releaseBoxCompanion = (boxIdx: number) => {
+    const comp = pcBoxStorage[boxIdx];
+    if (!comp) return;
+    const info = numaList.find(n => n.id === comp.numaId);
+    
+    setPcBoxStorage(prev => prev.filter((_, i) => i !== boxIdx));
+    showToast(`👋 Bye-bye, ${info?.name || 'friend'}! Released safely back into the wild.`);
+    playSound('click');
   };
 
   // Cooking station
@@ -2272,6 +2792,8 @@ export default function App() {
             >
               {!prologueComplete && prologueStep !== 5 ? (
                 renderPrologueViewport()
+              ) : evolvingCompanion ? (
+                renderEvolutionViewport()
               ) : encounterNuma ? (
                 /* PREMIUM RETRO TURN-BASED COMBAT VIEWPORT (POKÉMON RED LEVEL) */
                 <div 
@@ -3068,7 +3590,8 @@ export default function App() {
                   {activeCompanions.map((comp, idx) => {
                     const info = numaList.find(n => n.id === comp.numaId);
                     if (!info) return null;
-                    const canEvolve = info.evolutionTargetId && comp.bond >= 100;
+                    const evolCheck = NumaEvolutionService.evaluateEvolution(comp, numaList, unlockedPathStones);
+                    const canEvolve = evolCheck.canEvolve;
                     const cStats = getScaledStats(comp);
 
                     return (
@@ -3174,9 +3697,10 @@ export default function App() {
                           ) : (
                             <button
                               disabled
-                              className="w-full py-1.5 bg-[#253227] text-slate-500 font-bold rounded-lg text-[10px] uppercase tracking-wider cursor-not-allowed"
+                              className="w-full py-1.5 bg-[#253227] text-slate-500 font-bold rounded-lg text-[8.5px] uppercase tracking-wider cursor-not-allowed px-1 truncate"
+                              title={evolCheck.description}
                             >
-                              Locked (Need 100 Bond)
+                              {info.evolutionTargetId ? `Locked (Lvl ${info.stage === 'juvenile' ? '15' : '30'} & Bond 80)` : 'Max Evolution Stage'}
                             </button>
                           )}
                           
@@ -3207,6 +3731,16 @@ export default function App() {
                               )}
                             </div>
                           </div>
+                          
+                          {/* Deposit in PC Box action if player has extra crew */}
+                          {activeCompanions.length > 1 && (
+                            <button
+                              onClick={() => depositActiveCompanion(idx)}
+                              className="w-full mt-2 py-1 bg-teal-950/60 hover:bg-[#1a3832] border border-teal-900/30 text-[#86a188] hover:text-[#eff6ee] font-mono font-bold rounded-lg text-[9px] uppercase tracking-wider transition-all flex items-center justify-center gap-1 active:scale-95"
+                            >
+                              📥 Deposit to PC Box
+                            </button>
+                          )}
                         </div>
 
                       </div>
@@ -3219,6 +3753,98 @@ export default function App() {
                     </div>
                   )}
                 </div>
+              </div>
+
+              {/* PC Box Sanctuary Console */}
+              <div className="bg-[#1b261d] p-5 rounded-2xl border border-[#2d392e]/80 space-y-4">
+                <div className="flex justify-between items-center border-b border-[#2d392e]/60 pb-2">
+                  <h4 className="text-xs uppercase tracking-[0.2em] font-bold text-[#eff6ee] flex items-center gap-2">
+                    <Database className="w-4 h-4 text-cyan-500" /> Sanctuary PC Box ({pcBoxStorage.length} Stored)
+                  </h4>
+                  <span className="text-[8px] font-mono bg-cyan-950 text-cyan-400 border border-cyan-900/40 px-2 py-0.5 rounded-full uppercase">
+                    Retro Bank Access
+                  </span>
+                </div>
+                
+                <p className="text-[10px] text-[#86a188] leading-normal italic">
+                  Keep excess companions warm and protected here. Draw them back out to your travel pack or swap with active ones.
+                </p>
+
+                {pcBoxStorage.length > 0 ? (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-72 overflow-y-auto pr-1">
+                    {pcBoxStorage.map((boxComp, boxIdx) => {
+                      const info = numaList.find(n => n.id === boxComp.numaId);
+                      if (!info) return null;
+                      const level = boxComp.level || 5;
+                      const boxClassEmoji = getNumaEmoji(info.class);
+
+                      return (
+                        <div key={boxIdx} className="bg-black/30 border border-[#2d392e] rounded-xl p-3 flex flex-col justify-between text-[11px]">
+                          <div className="flex justify-between items-start">
+                            <div>
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-sm">{boxClassEmoji}</span>
+                                <h6 className="font-bold text-[#eff6ee] uppercase text-[12px]">{info.name}</h6>
+                              </div>
+                              <p className="text-[9px] text-[#86a188] font-mono uppercase mt-0.5">
+                                Lvl {level} | {info.class}
+                              </p>
+                            </div>
+                            <span className="text-[8.5px] font-mono text-stone-500 uppercase bg-black/40 px-1.5 py-0.5 rounded">
+                              Box Slot {boxIdx + 1}
+                            </span>
+                          </div>
+
+                          <div className="mt-2.5 pt-2 border-t border-[#2d392e]/40 flex flex-wrap gap-1.5 justify-end">
+                            {/* Withdraw button (if active pack < 6) */}
+                            {activeCompanions.length < 6 ? (
+                              <button
+                                onClick={() => withdrawBoxCompanion(boxIdx)}
+                                className="px-2 py-1 bg-[#1c3c43] hover:bg-[#254f59] border border-cyan-850 rounded text-[9px] uppercase font-bold text-white transition-colors"
+                              >
+                                📤 Withdraw
+                              </button>
+                            ) : (
+                              /* Swap selection dropdown if pack is full */
+                              <div className="relative group">
+                                <button className="px-2 py-1 bg-[#472c1c] hover:bg-[#5b3c2a] border border-amber-850 rounded text-[9px] uppercase font-bold text-white transition-colors">
+                                  🔄 Swap with...
+                                </button>
+                                <div className="absolute right-0 bottom-full w-40 bg-[#1b261d] border border-[#2d392e] rounded-xl hidden group-hover:block p-1 z-10 max-h-40 overflow-y-auto shadow-2xl">
+                                  <p className="text-[8px] uppercase font-bold text-slate-400 p-1">Choose Target:</p>
+                                  {activeCompanions.map((activeComp, activeI) => {
+                                    const activeInfo = numaList.find(n => n.id === activeComp.numaId);
+                                    return (
+                                      <button
+                                        key={activeI}
+                                        onClick={() => swapBoxAndActive(boxIdx, activeI)}
+                                        className="w-full text-left p-1 text-[8.5px] hover:bg-[#2c3d2f] text-[#eff6ee] rounded truncate block uppercase font-mono font-bold"
+                                      >
+                                        Slot {activeI + 1}: {activeInfo?.name} (Lvl {activeComp.level || 5})
+                                      </button>
+                                    );
+                                  })}
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Release back to wild */}
+                            <button
+                              onClick={() => releaseBoxCompanion(boxIdx)}
+                              className="px-2 py-1 bg-red-950/60 hover:bg-red-900 border border-red-900/30 rounded text-[9px] uppercase font-bold text-stone-400 hover:text-white transition-colors"
+                            >
+                              👋 Release
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div className="py-6 border border-dashed border-[#2d392e]/50 text-center rounded-2xl text-slate-500 bg-black/10">
+                    <p className="text-[10px]">No companions inside PC Storage. Your secondary sanctuary remains vacant.</p>
+                  </div>
+                )}
               </div>
 
               {/* Economic Station: Vala Mercenary Trader */}

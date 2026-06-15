@@ -173,13 +173,57 @@ export class MunuGameEngine {
   }
 
   /**
-   * Simulates classic 1999 GBC relative damage calculation
+   * Translates attack type matchups and returns a multiplier.
+   * Standard 1999 GBC relative grid type chart.
+   */
+  public static getTypeMultiplier(attackClass: string, defendClass: string): number {
+    const atk = attackClass.toLowerCase().trim();
+    const def = defendClass.toLowerCase().trim();
+    
+    if (atk === 'forest') {
+      if (['reef', 'ocean', 'marsh'].includes(def)) return 2.0;
+      if (['volcano', 'wind', 'ancient'].includes(def)) return 0.5;
+    }
+    if (atk === 'volcano') {
+      if (['forest', 'cave', 'ancient'].includes(def)) return 2.0;
+      if (['reef', 'ocean', 'volcano'].includes(def)) return 0.5;
+    }
+    if (atk === 'reef' || atk === 'ocean') {
+      if (['volcano', 'cave'].includes(def)) return 2.0;
+      if (['forest', 'reef', 'ocean', 'spirit'].includes(def)) return 0.5;
+    }
+    if (atk === 'cave') {
+      if (['volcano', 'wind'].includes(def)) return 2.0;
+      if (['forest', 'reef'].includes(def)) return 0.5;
+    }
+    if (atk === 'wind') {
+      if (['forest', 'marsh'].includes(def)) return 2.0;
+      if (['cave', 'volcano'].includes(def)) return 0.5;
+    }
+    if (atk === 'night') {
+      if (['spirit', 'ancient'].includes(def)) return 2.0;
+      if (['forest', 'volcano'].includes(def)) return 0.5;
+    }
+    if (atk === 'spirit') {
+      if (['spirit', 'night'].includes(def)) return 2.0;
+      if (['ancient', 'forest'].includes(def)) return 0.5;
+    }
+    if (atk === 'ancient') {
+      if (['cave', 'spirit', 'night'].includes(def)) return 2.0;
+      if (['forest', 'volcano'].includes(def)) return 0.5;
+    }
+    return 1.0;
+  }
+
+  /**
+   * Simulates classic 1999 GBC relative damage calculation with Type Multiplier support.
    */
   public static calculateGbcDamage(
     attackerLvl: number,
     movePower: number,
     attackStat: number,
-    defenseStat: number
+    defenseStat: number,
+    typeMultiplier: number = 1.0
   ): number {
     // Derived from original retro formulae: Core = ( (2 * Level / 5 + 2) * Attack * Power / Defense ) / 50 + 2
     const levelFactor = (2 * attackerLvl) / 5 + 2;
@@ -188,7 +232,7 @@ export class MunuGameEngine {
     const quotient = baseNum / defenseFactor / 50 + 2;
     const randomMultiplier = 0.85 + Math.random() * 0.15; // 85% to 100% variance
     
-    return Math.max(2, Math.floor(quotient * randomMultiplier));
+    return Math.max(2, Math.floor(quotient * randomMultiplier * typeMultiplier));
   }
 
   /**
