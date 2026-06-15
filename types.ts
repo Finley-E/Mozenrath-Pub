@@ -37,9 +37,45 @@ export interface Numa {
   favoriteFoodIds: string[];
   baseStats: {
     memory: number; // HP/MP equivalent
-    current: number; // Attack
-    resonance: number; // Defense
+    current: number; // Physical Attack
+    resonance: number; // Physical Defense
+    spirit: number; // Special Attack (NEW)
+    ward: number; // Special Defense (NEW)
+    flow: number; // Speed (renamed for theme)
   };
+  ability?: AbilityName; // NEW: Primary Ability
+  hiddenAbility?: AbilityName; // NEW: Hidden Ability
+}
+
+export type MoveCategory = 'physical' | 'special' | 'status';
+
+export interface Move {
+  id: string;
+  name: string;
+  type: NumaClass; // Using NumaClass as elemental type
+  category: MoveCategory; // NEW: Physical/Special/Status split
+  power: number;
+  accuracy: number;
+  pp: number;
+  effect?: string;
+}
+
+export type AbilityName = 
+  | 'none' 
+  | 'intimidate' // Lowers opponent attack on entry
+  | 'levitate' // Immune to ground moves (simplified)
+  | 'overgrow' // Boosts grass/forest moves when HP low
+  | 'blaze' // Boosts volcano/fire moves when HP low
+  | 'torrent' // Boosts ocean/water moves when HP low
+  | 'static' // Chance to paralyze on contact
+  | 'resonance' // Boosts special moves when HP low (custom)
+  ;
+
+export interface Ability {
+  id: AbilityName;
+  name: string;
+  description: string;
+  trigger: 'onEnter' | 'onHit' | 'passive' | 'onLowHp';
 }
 
 export enum FoodCategory {

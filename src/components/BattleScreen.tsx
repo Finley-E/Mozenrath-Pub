@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Heart, Zap } from 'lucide-react';
-import { Numa, NumaClass } from '../types';
+import { Numa, NumaClass, Move } from '../types';
 import { BattleEngine } from '../utils/BattleEngine';
+import { MOVES } from '../../services/mascareneData';
 
 interface BattleScreenProps {
   playerNuma: Numa;
@@ -46,22 +47,21 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
     return emojis[numaClass] || '🐾';
   };
 
+  // Get moves for the player's Numa (simplified - would use learnset in full version)
+  const playerMoves: Move[] = MOVES.filter(m => 
+    m.type === playerNuma.class || m.category === 'status'
+  ).slice(0, 4);
+
   const handleAttack = (moveIndex: number) => {
     if (!isPlayerTurn) return;
 
-    const moves = [
-      { name: 'Tackle', power: 15 },
-      { name: 'Ember', power: 12 },
-      { name: 'Splash', power: 18 }
-    ];
-
-    const move = moves[moveIndex % moves.length];
-    const multiplier = BattleEngine.getTypeMultiplier(playerNuma.class, opponentNuma.class);
+    const move = playerMoves[moveIndex] || MOVES[0];
+    const multiplier = BattleEngine.getTypeMultiplier(move.type, opponentNuma.class);
     const damage = BattleEngine.calculateDamage(
       playerLevel,
-      move.power,
-      playerNuma.baseStats.current,
-      opponentNuma.baseStats.resonance,
+      move,
+      playerNuma,
+      opponentNuma,
       multiplier
     );
 
@@ -79,18 +79,15 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
   };
 
   const enemyAttack = () => {
-    const enemyMoves = [
-      { name: 'Scratch', power: 14 },
-      { name: 'Bite', power: 16 }
-    ];
-
-    const move = enemyMoves[Math.floor(Math.random() * enemyMoves.length)];
-    const multiplier = BattleEngine.getTypeMultiplier(opponentNuma.class, playerNuma.class);
+    // Enemy uses a random move from their type
+    const enemyMoves = MOVES.filter(m => m.type === opponentNuma.class && m.power > 0);
+    const move = enemyMoves[Math.floor(Math.random() * enemyMoves.length)] || MOVES[0];
+    const multiplier = BattleEngine.getTypeMultiplier(move.type, playerNuma.class);
     const damage = BattleEngine.calculateDamage(
       opponentLevel,
-      move.power,
-      opponentNuma.baseStats.current,
-      playerNuma.baseStats.resonance,
+      move,
+      opponentNuma,
+      playerNuma,
       multiplier
     );
 
