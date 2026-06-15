@@ -1,4 +1,4 @@
-import { Numa, NumaClass, EvolutionStage, FoodItem, FoodCategory, Island, VocabWord } from "../types";
+import { Numa, NumaClass, EvolutionStage, FoodItem, FoodCategory, Island, VocabWord, Move, Ability, AbilityName } from "../types";
 
 // 4 Island details
 export const ISLANDS: Island[] = [
@@ -197,7 +197,7 @@ export const NUMA_ROSTER: Numa[] = [
     ecologicalRole: "Spreads moss seeds beneath canopy shadows, accelerating forest floor generation.",
     primaryIsland: "Lovi Canopy",
     favoriteFoodIds: ["stap-01", "fora-01", "drin-01"],
-    baseStats: { memory: 40, current: 8, resonance: 6 }
+    baseStats: { memory: 40, current: 8, resonance: 6, spirit: 8, ward: 6, flow: 5 }
   },
   {
     id: "002",
@@ -211,7 +211,7 @@ export const NUMA_ROSTER: Numa[] = [
     ecologicalRole: "Protects nesting forest avian species and guides juvenile forest lifeforms.",
     primaryIsland: "Lovi Canopy",
     favoriteFoodIds: ["prep-01", "stap-09", "drin-09"],
-    baseStats: { memory: 75, current: 16, resonance: 14 }
+    baseStats: { memory: 75, current: 16, resonance: 14, spirit: 16, ward: 14, flow: 5 }
   },
   {
     id: "003",
@@ -224,7 +224,7 @@ export const NUMA_ROSTER: Numa[] = [
     ecologicalRole: "Channels earth nutrients through its mossy bark, stabilizing root-bound platforms.",
     primaryIsland: "Lovi Canopy",
     favoriteFoodIds: ["fest-01", "prep-13", "drin-05"],
-    baseStats: { memory: 120, current: 28, resonance: 24 }
+    baseStats: { memory: 120, current: 28, resonance: 24, spirit: 28, ward: 24, flow: 5 }
   },
 
   // 2. VOLCANO FAMILY (Kozui Line, Starter) - IDs 004 - 006
@@ -239,7 +239,7 @@ export const NUMA_ROSTER: Numa[] = [
     ecologicalRole: "Vents subterranean gases safely through its small volcanic back bellows.",
     primaryIsland: "Koru Basalt",
     favoriteFoodIds: ["stap-02", "fora-02", "drin-02"],
-    baseStats: { memory: 38, current: 10, resonance: 5 }
+    baseStats: { memory: 38, current: 10, resonance: 5, spirit: 10, ward: 5, flow: 5 }
   },
   {
     id: "005",
@@ -253,7 +253,7 @@ export const NUMA_ROSTER: Numa[] = [
     ecologicalRole: "Melts hard ore nodes into accessible pockets, helping Kora potters extract fine clay.",
     primaryIsland: "Koru Basalt",
     favoriteFoodIds: ["prep-02", "fora-06", "drin-06"],
-    baseStats: { memory: 72, current: 20, resonance: 12 }
+    baseStats: { memory: 72, current: 20, resonance: 12, spirit: 20, ward: 12, flow: 5 }
   },
   {
     id: "006",
@@ -266,7 +266,7 @@ export const NUMA_ROSTER: Numa[] = [
     ecologicalRole: "Regulates regional tectonic current pulses, preventing sudden destructive eruptions.",
     primaryIsland: "Koru Basalt",
     favoriteFoodIds: ["fest-02", "prep-10", "drin-14"],
-    baseStats: { memory: 115, current: 32, resonance: 20 }
+    baseStats: { memory: 115, current: 32, resonance: 20, spirit: 32, ward: 20, flow: 5 }
   },
 
   // 3. REEF FAMILY (Vanui Line, Starter) - IDs 007 - 009
@@ -281,7 +281,7 @@ export const NUMA_ROSTER: Numa[] = [
     ecologicalRole: "Filters lagoon micro-sediments, ensuring crystal-clear shallow reef waters.",
     primaryIsland: "Mase Shallows",
     favoriteFoodIds: ["stap-03", "fora-03", "drin-03"],
-    baseStats: { memory: 42, current: 6, resonance: 8 }
+    baseStats: { memory: 42, current: 6, resonance: 8, spirit: 6, ward: 8, flow: 5 }
   },
   {
     id: "008",
@@ -295,7 +295,7 @@ export const NUMA_ROSTER: Numa[] = [
     ecologicalRole: "Promotes calcite coral shell growth, expanding safe breeding grounds for reef life.",
     primaryIsland: "Mase Shallows",
     favoriteFoodIds: ["prep-03", "fora-07", "drin-07"],
-    baseStats: { memory: 80, current: 14, resonance: 18 }
+    baseStats: { memory: 80, current: 14, resonance: 18, spirit: 14, ward: 18, flow: 5 }
   },
   {
     id: "009",
@@ -308,7 +308,7 @@ export const NUMA_ROSTER: Numa[] = [
     ecologicalRole: "Guardian of key tidal inlets, mapping underwater memory trails for migrating shoals.",
     primaryIsland: "Mase Shallows",
     favoriteFoodIds: ["fest-03", "prep-07", "drin-11"],
-    baseStats: { memory: 130, current: 22, resonance: 30 }
+    baseStats: { memory: 130, current: 22, resonance: 30, spirit: 22, ward: 30, flow: 5 }
   },
 
   // 4. WIND FAMILY (Seli Line) - IDs 010 - 012
@@ -323,7 +323,7 @@ export const NUMA_ROSTER: Numa[] = [
     ecologicalRole: "Scatters alpine grass-pollen through whistling currents.",
     primaryIsland: "Wesa High Lands",
     favoriteFoodIds: ["stap-04", "fora-08", "drin-04"],
-    baseStats: { memory: 35, current: 9, resonance: 4 }
+    baseStats: { memory: 35, current: 9, resonance: 4, spirit: 9, ward: 4, flow: 5 }
   },
   {
     id: "011",
@@ -337,7 +337,7 @@ export const NUMA_ROSTER: Numa[] = [
     ecologicalRole: "Guides wind seeds to fertile mountain pockets, bridging ecosystems.",
     primaryIsland: "Wesa High Lands",
     favoriteFoodIds: ["prep-04", "fora-12", "drin-12"],
-    baseStats: { memory: 68, current: 18, resonance: 10 }
+    baseStats: { memory: 68, current: 18, resonance: 10, spirit: 18, ward: 10, flow: 5 }
   },
   {
     id: "012",
@@ -350,7 +350,7 @@ export const NUMA_ROSTER: Numa[] = [
     ecologicalRole: "Balances upper atmospheric wind currents, calming violent hurricanes.",
     primaryIsland: "Wesa High Lands",
     favoriteFoodIds: ["fest-04", "prep-08", "drin-16"],
-    baseStats: { memory: 110, current: 30, resonance: 18 }
+    baseStats: { memory: 110, current: 30, resonance: 18, spirit: 30, ward: 18, flow: 5 }
   },
 
   // 5. OCEAN FAMILY (Woni Line) - IDs 013 - 015
@@ -365,7 +365,7 @@ export const NUMA_ROSTER: Numa[] = [
     ecologicalRole: "Distributes mineral deposits from deep currents onto outer reef banks.",
     primaryIsland: "Mase Shallows",
     favoriteFoodIds: ["stap-07", "drin-03", "fora-15"],
-    baseStats: { memory: 45, current: 7, resonance: 6 }
+    baseStats: { memory: 45, current: 7, resonance: 6, spirit: 7, ward: 6, flow: 5 }
   },
   {
     id: "014",
@@ -379,7 +379,7 @@ export const NUMA_ROSTER: Numa[] = [
     ecologicalRole: "Protects migrating shoals from heavy sea-current turbulence.",
     primaryIsland: "Mase Shallows",
     favoriteFoodIds: ["prep-15", "stap-11", "drin-15"],
-    baseStats: { memory: 82, current: 15, resonance: 12 }
+    baseStats: { memory: 82, current: 15, resonance: 12, spirit: 15, ward: 12, flow: 5 }
   },
   {
     id: "015",
@@ -392,7 +392,7 @@ export const NUMA_ROSTER: Numa[] = [
     ecologicalRole: "Keeps track of deep historical oceanic routes, directing seasonal ecosystem shifts.",
     primaryIsland: "Mase Shallows",
     favoriteFoodIds: ["fest-10", "prep-19", "drin-20"],
-    baseStats: { memory: 135, current: 24, resonance: 24 }
+    baseStats: { memory: 135, current: 24, resonance: 24, spirit: 24, ward: 24, flow: 5 }
   },
 
   // 6. CAVE FAMILY (Zumi Line) - IDs 016 - 018
@@ -407,7 +407,7 @@ export const NUMA_ROSTER: Numa[] = [
     ecologicalRole: "Carries subterranean lichen spores to deep obsidian cavities.",
     primaryIsland: "Koru Basalt",
     favoriteFoodIds: ["stap-06", "fora-10", "drin-10"],
-    baseStats: { memory: 41, current: 8, resonance: 8 }
+    baseStats: { memory: 41, current: 8, resonance: 8, spirit: 8, ward: 8, flow: 5 }
   },
   {
     id: "017",
@@ -421,7 +421,7 @@ export const NUMA_ROSTER: Numa[] = [
     ecologicalRole: "Vents trapped geothermal vapor into hot chambers, warming underground colonies.",
     primaryIsland: "Koru Basalt",
     favoriteFoodIds: ["prep-06", "fora-14", "drin-14"],
-    baseStats: { memory: 78, current: 17, resonance: 17 }
+    baseStats: { memory: 78, current: 17, resonance: 17, spirit: 17, ward: 17, flow: 5 }
   },
   {
     id: "018",
@@ -434,7 +434,7 @@ export const NUMA_ROSTER: Numa[] = [
     ecologicalRole: "Secures weak cave roots, preventing major sinkholes in populated plateaus.",
     primaryIsland: "Koru Basalt",
     favoriteFoodIds: ["fest-06", "prep-10", "drin-18"],
-    baseStats: { memory: 125, current: 26, resonance: 28 }
+    baseStats: { memory: 125, current: 26, resonance: 28, spirit: 26, ward: 28, flow: 5 }
   },
 
   // 7. MARSH FAMILY (Muli Line) - IDs 019 - 021
@@ -449,7 +449,7 @@ export const NUMA_ROSTER: Numa[] = [
     ecologicalRole: "Neutralizes stagnant salt-marsh toxins, aiding mangrove seedling success.",
     primaryIsland: "Lovi Canopy",
     favoriteFoodIds: ["stap-05", "fora-09", "drin-09"],
-    baseStats: { memory: 44, current: 6, resonance: 7 }
+    baseStats: { memory: 44, current: 6, resonance: 7, spirit: 6, ward: 7, flow: 5 }
   },
   {
     id: "020",
@@ -463,7 +463,7 @@ export const NUMA_ROSTER: Numa[] = [
     ecologicalRole: "Anchors loose silt beds, protecting swamp architecture from monsoon tides.",
     primaryIsland: "Lovi Canopy",
     favoriteFoodIds: ["prep-09", "fora-17", "drin-17"],
-    baseStats: { memory: 81, current: 12, resonance: 16 }
+    baseStats: { memory: 81, current: 12, resonance: 16, spirit: 12, ward: 16, flow: 5 }
   },
   {
     id: "021",
@@ -476,7 +476,7 @@ export const NUMA_ROSTER: Numa[] = [
     ecologicalRole: "Channels deep swamp water currents, preventing root-rot in historic platforms.",
     primaryIsland: "Lovi Canopy",
     favoriteFoodIds: ["fest-05", "prep-13", "drin-19"],
-    baseStats: { memory: 128, current: 21, resonance: 26 }
+    baseStats: { memory: 128, current: 21, resonance: 26, spirit: 21, ward: 26, flow: 5 }
   },
 
   // 8. NIGHT FAMILY (Yasi Line) - IDs 022 - 024
@@ -491,7 +491,7 @@ export const NUMA_ROSTER: Numa[] = [
     ecologicalRole: "Polliates midnight canopy lilies, which only bloom under yasa star light.",
     primaryIsland: "Lovi Canopy",
     favoriteFoodIds: ["stap-09", "fora-04", "drin-05"],
-    baseStats: { memory: 37, current: 9, resonance: 4 }
+    baseStats: { memory: 37, current: 9, resonance: 4, spirit: 9, ward: 4, flow: 5 }
   },
   {
     id: "023",
@@ -505,7 +505,7 @@ export const NUMA_ROSTER: Numa[] = [
     ecologicalRole: "Repels predatory nocturnal swamp-crawlers with rhythmic flashes.",
     primaryIsland: "Lovi Canopy",
     favoriteFoodIds: ["prep-13", "fora-17", "drin-12"],
-    baseStats: { memory: 70, current: 19, resonance: 9 }
+    baseStats: { memory: 70, current: 19, resonance: 9, spirit: 19, ward: 9, flow: 5 }
   },
   {
     id: "024",
@@ -518,7 +518,7 @@ export const NUMA_ROSTER: Numa[] = [
     ecologicalRole: "Regulates nocturnal wind-direction maps, aiding late night bird flyovers.",
     primaryIsland: "Lovi Canopy",
     favoriteFoodIds: ["fest-09", "prep-17", "drin-20"],
-    baseStats: { memory: 112, current: 31, resonance: 16 }
+    baseStats: { memory: 112, current: 31, resonance: 16, spirit: 31, ward: 16, flow: 5 }
   },
 
   // 9. ANCIENT FAMILY (Rili Line) - IDs 025 - 027
@@ -533,7 +533,7 @@ export const NUMA_ROSTER: Numa[] = [
     ecologicalRole: "Slowly uncovers ancient sanu symbols written on sunken stone tables.",
     primaryIsland: "Wesa High Lands",
     favoriteFoodIds: ["stap-12", "fora-13", "drin-08"],
-    baseStats: { memory: 43, current: 7, resonance: 9 }
+    baseStats: { memory: 43, current: 7, resonance: 9, spirit: 7, ward: 9, flow: 5 }
   },
   {
     id: "026",
@@ -547,7 +547,7 @@ export const NUMA_ROSTER: Numa[] = [
     ecologicalRole: "Preserves the frequency of historic stone monuments, holding soil-erosion back.",
     primaryIsland: "Wesa High Lands",
     favoriteFoodIds: ["prep-12", "fora-19", "drin-16"],
-    baseStats: { memory: 79, current: 13, resonance: 21 }
+    baseStats: { memory: 79, current: 13, resonance: 21, spirit: 13, ward: 21, flow: 5 }
   },
   {
     id: "027",
@@ -560,7 +560,7 @@ export const NUMA_ROSTER: Numa[] = [
     ecologicalRole: "Guardian of ancestral memories, bridging player wisdom with primordial spirits.",
     primaryIsland: "Wesa High Lands",
     favoriteFoodIds: ["fest-09", "prep-20", "drin-20"],
-    baseStats: { memory: 124, current: 22, resonance: 32 }
+    baseStats: { memory: 124, current: 22, resonance: 32, spirit: 22, ward: 32, flow: 5 }
   },
 
   // 10. SPIRIT FAMILY (Kosei Line) - IDs 028 - 030
@@ -575,7 +575,7 @@ export const NUMA_ROSTER: Numa[] = [
     ecologicalRole: "Purifies water-current streams, washing away stagnant negative energy bubbles.",
     primaryIsland: "Wesa High Lands",
     favoriteFoodIds: ["stap-16", "fora-20", "drin-20"],
-    baseStats: { memory: 36, current: 9, resonance: 5 }
+    baseStats: { memory: 36, current: 9, resonance: 5, spirit: 9, ward: 5, flow: 5 }
   },
   {
     id: "029",
@@ -589,7 +589,7 @@ export const NUMA_ROSTER: Numa[] = [
     ecologicalRole: "Weaves high auroras under clear stars, stabilizing warm-cloud humidity.",
     primaryIsland: "Wesa High Lands",
     favoriteFoodIds: ["prep-16", "fora-20", "drin-12"],
-    baseStats: { memory: 70, current: 19, resonance: 11 }
+    baseStats: { memory: 70, current: 19, resonance: 11, spirit: 19, ward: 11, flow: 5 }
   },
   {
     id: "030",
@@ -602,7 +602,7 @@ export const NUMA_ROSTER: Numa[] = [
     ecologicalRole: "Acts as a primary current beacon, guiding lost souls back to Sanu circles.",
     primaryIsland: "Wesa High Lands",
     favoriteFoodIds: ["fest-04", "prep-08", "drin-20"],
-    baseStats: { memory: 115, current: 31, resonance: 20 }
+    baseStats: { memory: 115, current: 31, resonance: 20, spirit: 31, ward: 20, flow: 5 }
   }
 ];
 
@@ -618,7 +618,7 @@ export const PRIMORDIALS: Numa[] = [
     ecologicalRole: "Regulates light warmth across the archipelago, triggering orchid blooms.",
     primaryIsland: "Wesa High Lands",
     favoriteFoodIds: ["fest-04", "fest-09"],
-    baseStats: { memory: 200, current: 50, resonance: 40 }
+    baseStats: { memory: 200, current: 50, resonance: 40, spirit: 50, ward: 40, flow: 5 }
   },
   {
     id: "147",
@@ -630,7 +630,7 @@ export const PRIMORDIALS: Numa[] = [
     ecologicalRole: "Carries sky seeds across all 4 islands, ensuring continuous genetic flow.",
     primaryIsland: "Wesa High Lands",
     favoriteFoodIds: ["fest-04", "fest-08"],
-    baseStats: { memory: 190, current: 55, resonance: 35 }
+    baseStats: { memory: 190, current: 55, resonance: 35, spirit: 55, ward: 35, flow: 5 }
   },
   {
     id: "148",
@@ -642,7 +642,7 @@ export const PRIMORDIALS: Numa[] = [
     ecologicalRole: "Hardens the foundation stone rows of each island against heavy tidal erosion.",
     primaryIsland: "Koru Basalt",
     favoriteFoodIds: ["fest-02", "fest-06"],
-    baseStats: { memory: 220, current: 45, resonance: 55 }
+    baseStats: { memory: 220, current: 45, resonance: 55, spirit: 45, ward: 55, flow: 5 }
   },
   {
     id: "149",
@@ -654,7 +654,7 @@ export const PRIMORDIALS: Numa[] = [
     ecologicalRole: "Archives the historic currents of the archipelago inside the root ledger.",
     primaryIsland: "Lovi Canopy",
     favoriteFoodIds: ["fest-01", "fest-05"],
-    baseStats: { memory: 210, current: 42, resonance: 48 }
+    baseStats: { memory: 210, current: 42, resonance: 48, spirit: 42, ward: 48, flow: 5 }
   },
   {
     id: "150",
@@ -666,7 +666,7 @@ export const PRIMORDIALS: Numa[] = [
     ecologicalRole: "The origin source of all Numa currents, maintaining biological harmony.",
     primaryIsland: "Mase Shallows",
     favoriteFoodIds: ["fest-03", "fest-07"],
-    baseStats: { memory: 250, current: 60, resonance: 60 }
+    baseStats: { memory: 250, current: 60, resonance: 60, spirit: 60, ward: 60, flow: 5 }
   }
 ];
 
@@ -684,3 +684,48 @@ export function validateMunuWord(word: string): boolean {
   }
   return true;
 }
+
+// ABILITIES DATABASE
+export const ABILITIES: Record<AbilityName, Ability> = {
+  none: { id: 'none', name: 'None', description: 'No special ability', trigger: 'passive' },
+  intimidate: { id: 'intimidate', name: 'Intimidate', description: 'Lowers opponent attack on entry', trigger: 'onEnter' },
+  levitate: { id: 'levitate', name: 'Levitate', description: 'Immune to ground-based attacks', trigger: 'passive' },
+  overgrow: { id: 'overgrow', name: 'Overgrow', description: 'Boosts Forest moves when HP is low', trigger: 'onLowHp' },
+  blaze: { id: 'blaze', name: 'Blaze', description: 'Boosts Volcano moves when HP is low', trigger: 'onLowHp' },
+  torrent: { id: 'torrent', name: 'Torrent', description: 'Boosts Ocean moves when HP is low', trigger: 'onLowHp' },
+  static: { id: 'static', name: 'Static', description: 'Chance to paralyze on contact', trigger: 'onHit' },
+  resonance: { id: 'resonance', name: 'Resonance', description: 'Boosts special moves when HP is low', trigger: 'onLowHp' }
+};
+
+// MOVE DATABASE (Sample moves with Physical/Special/Status split)
+export const MOVES: Move[] = [
+  // PHYSICAL MOVES
+  { id: 'mv-001', name: 'Vine Lash', type: NumaClass.FOREST, category: 'physical', power: 45, accuracy: 100, pp: 25 },
+  { id: 'mv-002', name: 'Ember Claw', type: NumaClass.VOLCANO, category: 'physical', power: 50, accuracy: 95, pp: 20 },
+  { id: 'mv-003', name: 'Water Cut', type: NumaClass.OCEAN, category: 'physical', power: 55, accuracy: 95, pp: 20 },
+  { id: 'mv-004', name: 'Gale Wing', type: NumaClass.WIND, category: 'physical', power: 40, accuracy: 100, pp: 30 },
+  { id: 'mv-005', name: 'Rock Throw', type: NumaClass.CAVE, category: 'physical', power: 50, accuracy: 90, pp: 25 },
+  { id: 'mv-006', name: 'Sludge Bomb', type: NumaClass.MARSH, category: 'physical', power: 65, accuracy: 85, pp: 15 },
+  
+  // SPECIAL MOVES
+  { id: 'mv-007', name: 'Leaf Storm', type: NumaClass.FOREST, category: 'special', power: 70, accuracy: 90, pp: 15 },
+  { id: 'mv-008', name: 'Flamethrower', type: NumaClass.VOLCANO, category: 'special', power: 75, accuracy: 95, pp: 15 },
+  { id: 'mv-009', name: 'Hydro Pulse', type: NumaClass.OCEAN, category: 'special', power: 80, accuracy: 90, pp: 10 },
+  { id: 'mv-010', name: 'Air Slash', type: NumaClass.WIND, category: 'special', power: 65, accuracy: 95, pp: 20 },
+  { id: 'mv-011', name: 'Power Gem', type: NumaClass.CAVE, category: 'special', power: 70, accuracy: 95, pp: 15 },
+  { id: 'mv-012', name: 'Spirit Wave', type: NumaClass.SPIRIT, category: 'special', power: 75, accuracy: 90, pp: 15 },
+  
+  // STATUS MOVES
+  { id: 'mv-013', name: 'Growl', type: NumaClass.FOREST, category: 'status', power: 0, accuracy: 100, pp: 40, effect: 'Lowers opponent Attack' },
+  { id: 'mv-014', name: 'Tail Whip', type: NumaClass.FOREST, category: 'status', power: 0, accuracy: 100, pp: 30, effect: 'Lowers opponent Defense' },
+  { id: 'mv-015', name: 'Harden', type: NumaClass.CAVE, category: 'status', power: 0, accuracy: 100, pp: 30, effect: 'Raises user Defense' },
+  { id: 'mv-016', name: 'Recover', type: NumaClass.SPIRIT, category: 'status', power: 0, accuracy: 100, pp: 10, effect: 'Restores 50% HP' },
+  { id: 'mv-017', name: 'Agility', type: NumaClass.WIND, category: 'status', power: 0, accuracy: 100, pp: 20, effect: 'Raises user Speed' },
+  { id: 'mv-018', name: 'Toxic', type: NumaClass.MARSH, category: 'status', power: 0, accuracy: 90, pp: 10, effect: 'Badly poisons opponent' },
+  
+  // STARTER MOVES
+  { id: 'mv-019', name: 'Tackle', type: NumaClass.FOREST, category: 'physical', power: 40, accuracy: 100, pp: 35 },
+  { id: 'mv-020', name: 'Scratch', type: NumaClass.FOREST, category: 'physical', power: 40, accuracy: 100, pp: 35 },
+  { id: 'mv-021', name: 'Ember', type: NumaClass.VOLCANO, category: 'special', power: 40, accuracy: 100, pp: 25 },
+  { id: 'mv-022', name: 'Water Gun', type: NumaClass.OCEAN, category: 'special', power: 40, accuracy: 100, pp: 25 }
+];
