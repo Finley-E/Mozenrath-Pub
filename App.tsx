@@ -474,16 +474,21 @@ export default function App() {
     
     const level = comp.level !== undefined ? comp.level : 5;
     const exp = comp.exp !== undefined ? comp.exp : 0;
-    const maxHp = Math.floor(info.baseStats.memory * (1 + 0.15 * (level - 1)));
-    const currentHp = comp.currentHp !== undefined ? comp.currentHp : maxHp;
-    const attack = Math.floor(info.baseStats.current * (1 + 0.12 * (level - 1)));
-    const defense = Math.floor(info.baseStats.resonance * (1 + 0.12 * (level - 1)));
+    
+    // Leverage the custom 16x11 RPG Game Engine scaling calculations
+    const scaled = MunuGameEngine.getScaledCompanionStats(
+      info.baseStats.memory,
+      info.baseStats.current,
+      info.baseStats.resonance,
+      level
+    );
+    const currentHp = comp.currentHp !== undefined ? comp.currentHp : scaled.maxHp;
     
     return {
-      maxHp,
+      maxHp: scaled.maxHp,
       currentHp,
-      attack,
-      defense,
+      attack: scaled.attack,
+      defense: scaled.defense,
       level,
       exp,
       info
@@ -1237,7 +1242,7 @@ export default function App() {
 
     // Damage calculations (standard GBC mechanics)
     const wildDefense = Math.floor(encounterNuma.baseStats.resonance * (1 + 0.12 * (battleOpponentLevel - 1)));
-    const damage = Math.max(3, Math.floor((compStats.attack / Math.max(1, wildDefense)) * move.power * (0.85 + Math.random() * 0.15)));
+    const damage = MunuGameEngine.calculateGbcDamage(compStats.level, move.power, compStats.attack, wildDefense);
     const nextWildHp = Math.max(0, battleOpponentHp - damage);
 
     // Setup action logs
@@ -1305,7 +1310,8 @@ export default function App() {
         const wildMove = wildMoves[Math.floor(Math.random() * wildMoves.length)];
         const wildAttack = Math.floor(encounterNuma.baseStats.current * (1 + 0.1 * (battleOpponentLevel - 1)));
 
-        const counterDamage = Math.max(2, Math.floor((wildAttack / Math.max(1, compStats.defense)) * wildMove.power * (0.8 + Math.random() * 0.2)));
+        // Calculate standard retro GBC counter damage using game engine
+        const counterDamage = MunuGameEngine.calculateGbcDamage(battleOpponentLevel, wildMove.power, wildAttack, compStats.defense);
         const nextCompHp = Math.max(0, compStats.currentHp - counterDamage);
 
         // Update active comp state in state tree

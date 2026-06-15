@@ -6,6 +6,20 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>NovaRender | Production Console</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    gridTemplateColumns: {
+                        '16': 'repeat(16, minmax(0, 1fr))',
+                    },
+                    gridTemplateRows: {
+                        '11': 'repeat(11, minmax(0, 1fr))',
+                    }
+                }
+            }
+        }
+    </script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
     <style>
         :root {
@@ -24,6 +38,15 @@
             border: 1px solid rgba(255, 255, 255, 0.05);
         }
         .mono { font-family: 'JetBrains Mono', monospace; }
+        
+        /* Explicit backup classes supporting perfect GBC tile alignment */
+        .grid-cols-16 {
+            display: grid !important;
+            grid-template-columns: repeat(16, minmax(0, 1fr)) !important;
+        }
+        .grid-rows-11 {
+            grid-template-rows: repeat(11, minmax(0, 1fr)) !important;
+        }
         
         @keyframes scanline {
             0% { transform: translateY(-100%); }
