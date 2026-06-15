@@ -26,7 +26,8 @@ import {
   BookMarked,
   Scroll,
   Dna,
-  RefreshCw
+  RefreshCw,
+  CloudLightning
 } from 'lucide-react';
 import { Numa, NumaClass, EvolutionStage, FoodItem, FoodCategory, Island, VocabWord, GameState, SanuLedger } from './types';
 import { ISLANDS, VOCABULARY, FOOD_ITEMS, NUMA_ROSTER, PRIMORDIALS, validateMunuWord } from './services/mascareneData';
@@ -248,6 +249,12 @@ export default function App() {
     return (saved as any) || 'noon';
   });
 
+  const [dynamicAtmosphere, setDynamicAtmosphere] = useState<boolean>(() => {
+    const saved = localStorage.getItem('mascarene_dynamic_atmosphere');
+    return saved !== 'false'; // defaults to true
+  });
+  const [cameraRumble, setCameraRumble] = useState<boolean>(false);
+
   // Generative music loop state
   const [ambientMusicOn, setAmbientMusicOn] = useState(false);
   const ambientIntervalRef = useRef<any>(null);
@@ -255,6 +262,68 @@ export default function App() {
   // Friendly iFrame toast notification state
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const toastTimeoutRef = useRef<any>(null);
+
+  // Touch swipe gesture state with GBC coordinate conversion
+  const touchStartRef = useRef<{ clientX: number; clientY: number } | null>(null);
+
+  const getGridLogicalCoords = (clientX: number, clientY: number, element: HTMLDivElement) => {
+    const rect = element.getBoundingClientRect();
+    const width = rect.width || 1;
+    const height = rect.height || 1;
+    // Map screen pixel bounds cleanly to GBC-spec 16x11 grid coordinates
+    const logicalX = ((clientX - rect.left) / width) * 16;
+    const logicalY = ((clientY - rect.top) / height) * 11;
+    return { x: logicalX, y: logicalY };
+  };
+
+  const handleTouchStart = (e: React.TouchEvent<HTMLDivElement>) => {
+    const touch = e.touches[0];
+    if (touch) {
+      touchStartRef.current = {
+        clientX: touch.clientX,
+        clientY: touch.clientY,
+      };
+    }
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent<HTMLDivElement>) => {
+    if (!touchStartRef.current) return;
+    const touch = e.changedTouches[0];
+    if (!touch) return;
+
+    const container = e.currentTarget;
+    if (!container) return;
+
+    // Apply exact coordinate conversion to logical tiles before calculating swipe direction
+    const startCoords = getGridLogicalCoords(touchStartRef.current.clientX, touchStartRef.current.clientY, container);
+    const endCoords = getGridLogicalCoords(touch.clientX, touch.clientY, container);
+
+    const dx = endCoords.x - startCoords.x;
+    const dy = endCoords.y - startCoords.y;
+
+    // Minimum swipe displacement required in GBC grid space is 1.0 cells
+    const swipeThreshold = 1.0;
+
+    if (Math.abs(dx) > Math.abs(dy)) {
+      if (Math.abs(dx) >= swipeThreshold) {
+        if (dx > 0) {
+          handleWalk(1, 0); // Walk Right
+        } else {
+          handleWalk(-1, 0); // Walk Left
+        }
+      }
+    } else {
+      if (Math.abs(dy) >= swipeThreshold) {
+        if (dy > 0) {
+          handleWalk(0, 1); // Walk Down
+        } else {
+          handleWalk(0, -1); // Walk Up
+        }
+      }
+    }
+
+    touchStartRef.current = null;
+  };
 
   const showToast = (msg: string) => {
     if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
@@ -316,6 +385,10 @@ export default function App() {
   useEffect(() => {
     localStorage.setItem('mascarene_weather', weather);
   }, [weather]);
+
+  useEffect(() => {
+    localStorage.setItem('mascarene_dynamic_atmosphere', String(dynamicAtmosphere));
+  }, [dynamicAtmosphere]);
 
   useEffect(() => {
     localStorage.setItem('mascarene_time_of_day', timeOfDay);
@@ -381,6 +454,9 @@ export default function App() {
     const isPro = localStorage.getItem('mascarene_prologue_complete') === 'true';
     return isPro ? 2 : 1;
   });
+
+  const [playerFacing, setPlayerFacing] = useState<'left' | 'right' | 'up' | 'down'>('down');
+  const [isBumping, setIsBumping] = useState<'left' | 'right' | 'up' | 'down' | null>(null);
 
   const [gbMessage, setGbMessage] = useState<string>(() => {
     const isPro = localStorage.getItem('mascarene_prologue_complete') === 'true';
@@ -466,6 +542,13 @@ export default function App() {
   const [isScreenFlashing, setIsScreenFlashing] = useState(false);
   const [isThrowingVessel, setIsThrowingVessel] = useState(false);
   const [fedFavoriteBonus, setFedFavoriteBonus] = useState(false);
+
+  // GAME FREAK Battle Polish States
+  const [battleIntroState, setBattleIntroState] = useState<'none' | 'strobe' | 'curtain'>('none');
+  const [playerHitFlinch, setPlayerHitFlinch] = useState(false);
+  const [opponentHitFlinch, setOpponentHitFlinch] = useState(false);
+  const [playerSpin, setPlayerSpin] = useState(false);
+  const [opponentSpin, setOpponentSpin] = useState(false);
 
   // Master helper to get level-scaled stats for any companion
   const getScaledStats = (comp: { numaId: string; bond: number; level?: number; exp?: number; currentHp?: number; stats: any }) => {
@@ -616,7 +699,7 @@ export default function App() {
   }, [ambientMusicOn, sfxEnabled, currentIslandIndex]);
 
   // Audio Synthesizer using Web Audio API
-  const playSound = (type: 'beep' | 'success' | 'levelUp' | 'click' | 'water' | 'spark' | 'evolve') => {
+  const playSound = (type: 'beep' | 'success' | 'levelUp' | 'click' | 'water' | 'spark' | 'evolve' | 'wildEncounter' | 'critical' | 'flee') => {
     if (!sfxEnabled) return;
     try {
       const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
@@ -633,6 +716,37 @@ export default function App() {
         gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.12);
         osc.start();
         osc.stop(ctx.currentTime + 0.12);
+      } else if (type === 'critical') {
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(120, ctx.currentTime);
+        osc.frequency.linearRampToValueAtTime(600, ctx.currentTime + 0.25);
+        gain.gain.setValueAtTime(0.12, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.25);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.25);
+      } else if (type === 'flee') {
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(800, ctx.currentTime);
+        osc.frequency.linearRampToValueAtTime(100, ctx.currentTime + 0.45);
+        gain.gain.setValueAtTime(0.08, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.45);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.45);
+      } else if (type === 'wildEncounter') {
+        osc.type = 'square';
+        // Play an authentic Game Boy rising alarm sound sequence
+        const now = ctx.currentTime;
+        osc.frequency.setValueAtTime(180, now);
+        osc.frequency.setValueAtTime(260, now + 0.08);
+        osc.frequency.setValueAtTime(340, now + 0.16);
+        osc.frequency.setValueAtTime(420, now + 0.24);
+        osc.frequency.setValueAtTime(540, now + 0.32);
+        osc.frequency.setValueAtTime(700, now + 0.40);
+        osc.frequency.exponentialRampToValueAtTime(1500, now + 0.65);
+        gain.gain.setValueAtTime(0.08, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.7);
+        osc.start();
+        osc.stop(now + 0.7);
       } else if (type === 'click') {
         osc.type = 'square';
         osc.frequency.setValueAtTime(110, ctx.currentTime);
@@ -711,10 +825,22 @@ export default function App() {
 
   // RPG walk logic
   const handleWalk = (dx: number, dy: number) => {
+    // Save player last facing intent
+    const direction = dx > 0 ? 'right' : dx < 0 ? 'left' : dy > 0 ? 'down' : dy < 0 ? 'up' : null;
+    if (direction) {
+      setPlayerFacing(direction);
+    }
+
     const moveRes = MunuGameEngine.solveMove({ x: charX, y: charY }, dx, dy, currentMap);
     
     if (!moveRes.success) {
       playSound('click');
+      setCameraRumble(true);
+      setTimeout(() => setCameraRumble(false), 150);
+      if (direction) {
+        setIsBumping(direction);
+        setTimeout(() => setIsBumping(null), 120);
+      }
       if (moveRes.tile !== -1 && MunuGameEngine.isSolidObstacle(moveRes.tile)) {
         setGbMessage("Ouch! Obstacle block.");
       } else {
@@ -732,7 +858,13 @@ export default function App() {
     setPrevCharY(charY);
     setCharX(nextX);
     setCharY(nextY);
-    playSound('beep');
+
+    if (tile === 5) {
+      // Grass rustle effect
+      playSound('beep');
+    } else {
+      playSound('beep');
+    }
 
     // Trigger walk outcomes based on tile type
     if (!prologueComplete) {
@@ -774,7 +906,18 @@ export default function App() {
       const selected = islandNumas.length > 0 ? islandNumas[Math.floor(Math.random() * islandNumas.length)] : numaList[0];
       
       setEncounterNuma(selected);
-      playSound('spark');
+      
+      // GAME FREAK Wild Alarm audio cascade + optical stroboscope
+      playSound('wildEncounter');
+      setBattleIntroState('strobe');
+      
+      setTimeout(() => {
+        setBattleIntroState('curtain');
+      }, 450);
+
+      setTimeout(() => {
+        setBattleIntroState('none');
+      }, 1150);
 
       // Setup Pokémon Red relative battle settings
       const diff = currentIsland.difficulty || 1;
@@ -1238,12 +1381,29 @@ export default function App() {
     // Spend player turn
     setIsBattleTurn(false);
     playSound('beep');
+    setPlayerSpin(true);
+    setTimeout(() => setPlayerSpin(false), 420);
     triggerScreenFlash();
 
     // Damage calculations (standard GBC mechanics)
     const wildDefense = Math.floor(encounterNuma.baseStats.resonance * (1 + 0.12 * (battleOpponentLevel - 1)));
     const damage = MunuGameEngine.calculateGbcDamage(compStats.level, move.power, compStats.attack, wildDefense);
     const nextWildHp = Math.max(0, battleOpponentHp - damage);
+
+    // Opponent Hit Visuals
+    setTimeout(() => {
+      setOpponentHitFlinch(true);
+      setTimeout(() => setOpponentHitFlinch(false), 380);
+      
+      // Determine critical style vs standard
+      if (damage > 16 || Math.random() < 0.22) {
+        playSound('critical');
+        setCameraRumble(true);
+        setTimeout(() => setCameraRumble(false), 220);
+      } else {
+        playSound('spark');
+      }
+    }, 250);
 
     // Setup action logs
     const actionLogs = [
@@ -1313,6 +1473,24 @@ export default function App() {
         // Calculate standard retro GBC counter damage using game engine
         const counterDamage = MunuGameEngine.calculateGbcDamage(battleOpponentLevel, wildMove.power, wildAttack, compStats.defense);
         const nextCompHp = Math.max(0, compStats.currentHp - counterDamage);
+
+        // Enemy visual recoil
+        setOpponentSpin(true);
+        setTimeout(() => setOpponentSpin(false), 420);
+
+        // Player Hit Visuals
+        setTimeout(() => {
+          setPlayerHitFlinch(true);
+          setTimeout(() => setPlayerHitFlinch(false), 380);
+          
+          if (counterDamage > 14) {
+            playSound('critical');
+            setCameraRumble(true);
+            setTimeout(() => setCameraRumble(false), 200);
+          } else {
+            playSound('spark');
+          }
+        }, 220);
 
         // Update active comp state in state tree
         const updatedCompanions = [...activeCompanions];
@@ -2100,6 +2278,14 @@ export default function App() {
                   className={`flex-grow flex flex-col justify-between p-2.5 relative z-10 select-none min-h-[340px] text-xs font-mono transition-all duration-150 ${isScreenFlashing ? 'bg-white invert' : ''}`}
                   style={{ color: activePalette.dark }}
                 >
+                  {/* 👾 RETRO GAME BOY FLASH & SWIPE BATTLE TRANSITIONS */}
+                  {battleIntroState === 'strobe' && (
+                    <div className="battle-intro-strobe absolute inset-0 z-[100]" />
+                  )}
+                  {battleIntroState === 'curtain' && (
+                    <div className="battle-blinds-overlay battle-blinds-active absolute inset-0 z-[99]" />
+                  )}
+
                   {/* TOP ROW: Opponent & Player Status Bars in Pokémon layout */}
                   <div className="space-y-2">
                     {/* 1. Wild Numa HP Status (Top Right Layout) */}
@@ -2196,7 +2382,15 @@ export default function App() {
                     
                     {/* Player Companion (Left, facing right) */}
                     <div className="flex flex-col items-center">
-                      <div className="w-11 h-11 rounded-full bg-stone-100/80 border border-stone-400/50 flex items-center justify-center text-2xl shadow-sm relative animate-pulse">
+                      <div 
+                        className={`w-11 h-11 rounded-full bg-stone-100/80 border border-stone-400/50 flex items-center justify-center text-2xl shadow-sm relative transition-all duration-300 ${
+                          playerSpin ? 'battler-spin' : ''
+                        } ${
+                          playerHitFlinch ? 'hit-flinch' : 'animate-pulse'
+                        } ${
+                          battleIntroState !== 'none' ? 'opacity-0 scale-50' : 'companion-slide-in'
+                        }`}
+                      >
                         {(() => {
                           const companion = activeCompanions[battleActiveIndex];
                           const stats = companion ? getScaledStats(companion) : null;
@@ -2227,7 +2421,15 @@ export default function App() {
 
                     {/* Wild Opponent Numa (Right, facing left) */}
                     <div className="flex flex-col items-center">
-                      <div className="w-11 h-11 rounded-full bg-stone-100/80 border border-stone-400/50 flex items-center justify-center text-2xl shadow-sm relative animate-bounce">
+                      <div 
+                        className={`w-11 h-11 rounded-full bg-stone-100/80 border border-stone-400/50 flex items-center justify-center text-2xl shadow-sm relative transition-all duration-300 ${
+                          opponentSpin ? 'battler-spin' : ''
+                        } ${
+                          opponentHitFlinch ? 'hit-flinch' : 'animate-bounce'
+                        } ${
+                          battleIntroState !== 'none' ? 'opacity-0 scale-50' : 'opponent-slide-in'
+                        }`}
+                      >
                         {encounterNuma.class === NumaClass.FOREST && "🌱"}
                         {encounterNuma.class === NumaClass.REEF && "🪸"}
                         {encounterNuma.class === NumaClass.OCEAN && "🐬"}
@@ -2408,38 +2610,94 @@ export default function App() {
                 </div>
               ) : (
                 /* DYNAMIC 2D OVERWORLD with Weather and Time lighting */
-                <div className="flex-grow flex flex-col justify-between relative min-h-[300px]">
+                <div className={`flex-grow flex flex-col justify-between relative min-h-[300px] ${cameraRumble ? 'screen-rumble' : ''}`}>
                   
                   {/* Floating Weather Particle overlay layer */}
-                  <div className="absolute inset-0 pointer-events-none overflow-hidden z-[5]">
-                    {Array.from({ length: 14 }).map((_, i) => {
-                      let char = "🍃";
-                      if (weather === 'rainy') char = "💧";
-                      else if (weather === 'volcanic') char = "🔥";
-                      else if (weather === 'gale') char = "🌀";
-                      else if (weather === 'aurora') char = "✨";
-                      else if (weather === 'foggy') char = "☁️";
-
-                      const leftPercent = (i * 7.1) % 100;
-                      const delay = i * 0.35;
-                      const duration = 2.5 + (i % 3);
-
-                      return (
+                  {dynamicAtmosphere ? (
+                    <div className="absolute inset-0 pointer-events-none overflow-hidden z-[5] rounded-md">
+                      {/* RAIN */}
+                      {weather === 'rainy' && Array.from({ length: 25 }).map((_, idx) => (
                         <div
-                          key={i}
-                          className="absolute particle-anim text-xs select-none opacity-0"
+                          key={`rain-${idx}`}
+                          className="rain-streak"
                           style={{
-                            left: `${leftPercent}%`,
-                            bottom: '-20px',
-                            animationDelay: `${delay}s`,
-                            animationDuration: `${duration}s`,
+                            left: `${(idx * 7.7) % 100}%`,
+                            top: `-${20 + (idx % 4) * 15}px`,
+                            animationDelay: `${idx * 0.08}s`,
+                            animationDuration: `${0.5 + (idx % 3) * 0.15}s`,
                           }}
-                        >
-                          {char}
-                        </div>
-                      );
-                    })}
-                  </div>
+                        />
+                      ))}
+
+                      {/* VOLCANIC EMBERS */}
+                      {weather === 'volcanic' && Array.from({ length: 18 }).map((_, idx) => (
+                        <div
+                          key={`ember-${idx}`}
+                          className="volcanic-ember"
+                          style={{
+                            left: `${(idx * 8.3) % 95}%`,
+                            bottom: `-${15 + (idx % 3) * 10}px`,
+                            width: `${2 + (idx % 3) * 2}px`,
+                            height: `${2 + (idx % 3) * 2}px`,
+                            animationDelay: `${idx * 0.18}s`,
+                            animationDuration: `${2.2 + (idx % 4) * 0.4}s`,
+                          }}
+                        />
+                      ))}
+
+                      {/* GALE WIND GUSTS */}
+                      {weather === 'gale' && Array.from({ length: 10 }).map((_, idx) => (
+                        <div
+                          key={`gale-${idx}`}
+                          className="gale-gust"
+                          style={{
+                            top: `${(idx * 11.5) % 90}%`,
+                            width: `${80 + (idx % 3) * 45}px`,
+                            animationDelay: `${idx * 0.22}s`,
+                            animationDuration: `${1.1 + (idx % 3) * 0.25}s`,
+                          }}
+                        />
+                      ))}
+
+                      {/* AURORA WAVE */}
+                      {weather === 'aurora' && (
+                        <div className="aurora-curtain shadow-[inset_0_0_30px_rgba(52,211,153,0.15)]" />
+                      )}
+
+                      {/* FOG DRIFT */}
+                      {weather === 'foggy' && (
+                        <div className="fog-mist" />
+                      )}
+                    </div>
+                  ) : (
+                    <div className="absolute inset-0 pointer-events-none overflow-hidden z-[5]">
+                      {Array.from({ length: 10 }).map((_, i) => {
+                        let char = "🍃";
+                        if (weather === 'rainy') char = "💧";
+                        else if (weather === 'volcanic') char = "🔥";
+                        else if (weather === 'gale') char = "🌀";
+                        else if (weather === 'aurora') char = "✨";
+                        else if (weather === 'foggy') char = "☁️";
+
+                        const leftPercent = (i * 10) % 100;
+                        const delay = i * 0.4;
+                        const duration = 3.0 + (i % 3);
+
+                        return (
+                          <div
+                            key={i}
+                            className="absolute text-[10px] select-none opacity-20"
+                            style={{
+                              left: `${leftPercent}%`,
+                              top: `-${15}px`,
+                            }}
+                          >
+                            {char}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
 
                   {/* Atmosphere solar overlay tints */}
                   <div className="absolute inset-0 pointer-events-none z-[6] rounded-md overflow-hidden">
@@ -2458,7 +2716,11 @@ export default function App() {
                   </div>
 
                   {/* Real Grid System, responsive aspect cells */}
-                  <div className="grid grid-cols-16 grid-rows-11 gap-0.5 border border-black/20 rounded-md overflow-hidden bg-[#e0ffd1]/70 relative z-[4] p-1 shadow-inner flex-grow">
+                  <div 
+                    onTouchStart={handleTouchStart}
+                    onTouchEnd={handleTouchEnd}
+                    className="grid grid-cols-16 grid-rows-11 gap-0.5 border border-black/20 rounded-md overflow-hidden bg-[#e0ffd1]/70 relative z-[4] p-1 shadow-inner flex-grow touch-none"
+                  >
                     {currentMap.map((row, y) => 
                       row.map((tile, x) => {
                         const isPlayer = charX === x && charY === y;
@@ -2502,15 +2764,27 @@ export default function App() {
                           tileChar = "⛩️"; // shrine
                         }
 
+                        let extraClass = "";
+                        if (isPlayer) {
+                          const bumpOffset = isBumping === 'up' ? '-translate-y-1' :
+                                             isBumping === 'down' ? 'translate-y-1' :
+                                             isBumping === 'left' ? '-translate-x-1' :
+                                             isBumping === 'right' ? 'translate-x-1' : '';
+                          const flipX = playerFacing === 'right' ? 'scale-x-[-1]' : '';
+                          extraClass = `transform transition-transform duration-75 ${bumpOffset} ${flipX}`;
+                        }
+
                         return (
                           <div 
                             key={`${x}-${y}`} 
-                            className={`aspect-square flex items-center justify-center text-[10px] md:text-sm leading-none rounded-md transition-all ${tileColor}`}
+                            className={`aspect-square flex items-center justify-center text-[10px] md:text-sm leading-none rounded-md transition-all ${tileColor} ${isPlayer ? 'z-[5]' : ''}`}
                             style={{ 
                               outline: '1px solid rgba(0,0,0,0.02)',
                             }}
                           >
-                            {tileChar}
+                            <span className={`${extraClass} inline-block leading-none select-none`}>
+                              {tileChar}
+                            </span>
                           </div>
                         );
                       })
@@ -3782,6 +4056,35 @@ export default function App() {
                 </div>
               </div>
 
+              {/* IMMERSIVE WEATHER CHIP TOGGLE */}
+              <div className="p-5 bg-[#1b261d] rounded-2xl border border-[#2d392e] space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <h4 className="text-xs uppercase tracking-[0.2em] font-black text-[#eff6ee] flex items-center gap-1.5">
+                      <CloudLightning className="w-4.5 h-4.5 text-emerald-400" /> Dynamic Atmosphere Engine
+                    </h4>
+                    <p className="text-[10px] text-[#86a188] font-mono leading-normal mr-2">
+                      Toggle HTML5 canvas-integrated hardware particle stream overlays (Rain slants, Volcanic embers, Aurora waves and Fog mists) matching the active weather conditions.
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => {
+                      playSound('beep');
+                      setDynamicAtmosphere(!dynamicAtmosphere);
+                    }}
+                    className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors focus:outline-none ${
+                      dynamicAtmosphere ? 'bg-emerald-600' : 'bg-stone-700'
+                    }`}
+                  >
+                    <span
+                      className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                        dynamicAtmosphere ? 'translate-x-6' : 'translate-x-1'
+                      }`}
+                    />
+                  </button>
+                </div>
+              </div>
+
               {/* Sound Synth Tester */}
               <div className="p-5 bg-[#1b261d] rounded-2xl border border-[#2d392e] space-y-4">
                 <h4 className="text-xs uppercase tracking-[0.2em] font-black text-[#eff6ee] flex items-center gap-1.5">
@@ -3808,6 +4111,71 @@ export default function App() {
                       {sound.label}
                     </button>
                   ))}
+                </div>
+              </div>
+
+              {/* Sandbox Developer Testing Room */}
+              <div className="p-5 bg-[#1b261d] rounded-2xl border border-[#2d392e] space-y-4">
+                <h4 className="text-xs uppercase tracking-[0.2em] font-black text-amber-400 flex items-center gap-1.5">
+                  <Sparkles className="w-4 h-4" /> Sandbox Testing Console
+                </h4>
+                <p className="text-[11px] text-[#86a188] leading-relaxed font-mono">
+                  Instantly bypass overworld grinding triggers to evaluate high-level combat configurations, evolutionary transformations, and raw asset balances.
+                </p>
+                <div className="grid grid-cols-2 gap-2 mt-2">
+                  <button
+                    onClick={() => {
+                      setVala(prev => prev + 500);
+                      playSound('success');
+                      showToast("🪙 Sandbox Grant: Added +500 Vala!");
+                    }}
+                    className="py-2.5 px-3 bg-[#121913] hover:bg-amber-950/20 text-xs font-bold text-amber-300 rounded-xl border border-amber-900/40 hover:border-amber-700 font-mono tracking-wide transition-colors text-center"
+                  >
+                    🪙 Grant +500 Vala
+                  </button>
+                  <button
+                    onClick={() => {
+                      setPantryInventory(prev => {
+                        const next = { ...prev };
+                        foodItems.forEach(food => {
+                          next[food.id] = (next[food.id] || 0) + 10;
+                        });
+                        return next;
+                      });
+                      playSound('success');
+                      showToast("🍏 Sandbox Grant: Added +10 of all item cards to Pantry!");
+                    }}
+                    className="py-2.5 px-3 bg-[#121913] hover:bg-emerald-950/20 text-xs font-bold text-emerald-300 rounded-xl border border-emerald-900/40 hover:border-emerald-700 font-mono tracking-wide transition-colors text-center"
+                  >
+                    🍏 Feed Pantry Stock
+                  </button>
+                  <button
+                    onClick={() => {
+                      setActiveCompanions(prev => prev.map(comp => {
+                        const nextLevel = Math.min(50, (comp.level || 5) + 3);
+                        return {
+                          ...comp,
+                          level: nextLevel,
+                          exp: 0
+                        };
+                      }));
+                      playSound('levelUp');
+                      showToast("⚡ Sandbox Catalyst: Boosted companions by +3 Levels!");
+                    }}
+                    className="py-2.5 px-3 bg-[#121913] hover:bg-blue-950/20 text-xs font-bold text-blue-300 rounded-xl border border-blue-900/40 hover:border-blue-700 font-mono tracking-wide transition-colors text-center"
+                  >
+                    ⚡ Companion Level +3
+                  </button>
+                  <button
+                    onClick={() => {
+                      setUnlockedPathStones(["Lovi Moss Stone", "Koru Fire Stone", "Mase Sound Stone", "Wesa Gale Stone"]);
+                      playSound('evolve');
+                      showToast("⛩️ Sandbox Complete: 4 Regional Pathway Royal Stones unlocked!");
+                    }}
+                    className="py-2.5 px-3 bg-[#121913] hover:bg-indigo-950/20 text-xs font-bold text-indigo-300 rounded-xl border border-indigo-900/40 hover:border-indigo-700 font-mono tracking-wide transition-colors text-center"
+                  >
+                    ⛩️ Unlock All Shrines
+                  </button>
                 </div>
               </div>
 
