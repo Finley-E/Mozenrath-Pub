@@ -1,4 +1,4 @@
-import { Numa, NumaClass, EvolutionStage, FoodItem, FoodCategory, Island, VocabWord } from "../types";
+import { Numa, NumaClass, EvolutionStage, FoodItem, FoodCategory, Island, VocabWord, CurrentType, MemoryRoute, StoryCircleEntry, HomeLedger } from "../types";
 
 // 4 Island details
 export const ISLANDS: Island[] = [
@@ -684,3 +684,214 @@ export function validateMunuWord(word: string): boolean {
   }
   return true;
 }
+
+// Five Currents - Primordial associations
+export const FIVE_CURRENTS = {
+  wind: { name: "Wind", primordial: "Wera", id: "146" },
+  tide: { name: "Tide", primordial: "Raza", id: "147" },
+  flame: { name: "Flame", primordial: "Kora", id: "148" },
+  memory: { name: "Memory", primordial: "Sana", id: "149" },
+  life: { name: "Life", primordial: "Muna", id: "150" }
+};
+
+// Memory Routes - Ancient pathways connecting settlements
+export const MEMORY_ROUTES: MemoryRoute[] = [
+  {
+    id: "route-lovi-01",
+    name: "Ironwood Root Path",
+    description: "Ancient moss-covered root pathway once used by Numa migrations between canopy platforms.",
+    fromSettlement: "Valira Quarter",
+    toSettlement: "Lovi Sky-Bridge",
+    requiredCurrentType: CurrentType.MEMORY,
+    rewards: {
+      vala: 25,
+      items: ["fora-01", "stap-09"],
+      unlocksFestival: "suna-tave",
+      spawnsNpc: ["Sunu Loomer", "Forest Elder"]
+    },
+    isRestored: false
+  },
+  {
+    id: "route-koru-01",
+    name: "Basalt Terrace Trail",
+    description: "Thermal stone path used by traders carrying fired clay vessels and volcanic berries.",
+    fromSettlement: "Koru Ash-Dome",
+    toSettlement: "Obsidian Caldera",
+    requiredCurrentType: CurrentType.FLAME,
+    rewards: {
+      vala: 30,
+      items: ["stap-06", "fora-06"],
+      unlocksFestival: "raza-sose",
+      spawnsNpc: ["Kora Potter", "Spark Keeper"]
+    },
+    isRestored: false
+  },
+  {
+    id: "route-mase-01",
+    name: "Tidal Reef Walkway",
+    description: "Shallow water causeway where seasonal festivals welcomed deep ocean Numa.",
+    fromSettlement: "Mase Drift-Shelter",
+    toSettlement: "Blue Coral Garden",
+    requiredCurrentType: CurrentType.TIDE,
+    rewards: {
+      vala: 28,
+      items: ["stap-03", "fora-03"],
+      unlocksFestival: "munu-lowi",
+      spawnsNpc: ["Masa Diver", "Pearl Collector"]
+    },
+    isRestored: false
+  },
+  {
+    id: "route-wesa-01",
+    name: "Alpine Wind Passage",
+    description: "High-altitude trail where gliders launched grass kites into the cloud currents.",
+    fromSettlement: "Wesa Kite-Cliff",
+    toSettlement: "Flute-Cave Plateau",
+    requiredCurrentType: CurrentType.WIND,
+    rewards: {
+      vala: 32,
+      items: ["stap-04", "fora-04"],
+      unlocksFestival: "we-woza",
+      spawnsNpc: ["Raza Glider", "Wind-Sage"]
+    },
+    isRestored: false
+  }
+];
+
+// Story Circles - Settlement gathering places for myths and knowledge
+export const STORY_CIRCLES: StoryCircleEntry[] = [
+  {
+    id: "circle-valira",
+    settlementName: "Valira Quarter",
+    elderName: "Elder Nulu-Va",
+    stories: [
+      {
+        id: "story-001",
+        title: "The First Current Song",
+        content: "Far back in the currents of Munu, when the roots of Lovi were but tiny sprouts (ki), there was a giant Taki that listened to the water currents. It sang a soft melody (nulu) that called all of the land together. Suna members weave roots to honor this song.",
+        isTrue: true,
+        category: "myth"
+      },
+      {
+        id: "story-002",
+        title: "The Lost Migration Path",
+        content: "Before the great storm, Numa walked freely between islands on paths made of woven light. The Sana Loop remembers these routes. Find the first Path Stone to awaken the Memory Current.",
+        isTrue: true,
+        category: "clue",
+        revealedClue: "Path Stones unlock Memory Routes"
+      },
+      {
+        id: "story-003",
+        title: "The Silent Current Legend",
+        content: "Some say the archipelago has forgotten itself. When all five Currents flow again—Wind, Tide, Flame, Memory, and Life—the Silent Current will awaken and restore balance.",
+        isTrue: true,
+        category: "migration"
+      }
+    ]
+  },
+  {
+    id: "circle-koru",
+    settlementName: "Koru Ash-Dome",
+    elderName: "Keeper Raza-Ta",
+    stories: [
+      {
+        id: "story-004",
+        title: "The Clay That Remembers",
+        content: "Kora vessels are not just containers. They hold echoes of every Numa they have carried. A skilled potter can hear the whispers of past companions.",
+        isTrue: true,
+        category: "food"
+      },
+      {
+        id: "story-005",
+        title: "The False Volcano",
+        content: "A tale warns of a mountain that roars but produces no heat. Those who climb it seeking warmth find only cold ash. (This story is false—meant to teach caution.)",
+        isTrue: false,
+        category: "myth"
+      }
+    ]
+  },
+  {
+    id: "circle-mase",
+    settlementName: "Mase Drift-Shelter",
+    elderName: "Loom-Mother Yo-Ra",
+    stories: [
+      {
+        id: "story-006",
+        title: "The Tide's Memory",
+        content: "Every wave carries a fragment of the past. Divers who listen deeply can hear the songs of extinct Numa echoing through the coral gardens.",
+        isTrue: true,
+        category: "migration"
+      },
+      {
+        id: "story-007",
+        title: "The Pearl That Grants Flight",
+        content: "Find a blue pearl-shell at midnight and you will soar like Wera. (This story is false—a playful tale told to children.)",
+        isTrue: false,
+        category: "myth"
+      }
+    ]
+  },
+  {
+    id: "circle-wesa",
+    settlementName: "Wesa Kite-Cliff",
+    elderName: "Wind-Sage Wera-Lo",
+    stories: [
+      {
+        id: "story-008",
+        title: "The Great Sky Flight",
+        content: "Once, all Numa could fly. They traded their wings for the ability to thrive on land, sea, and underground. The wind still calls to them.",
+        isTrue: true,
+        category: "myth"
+      },
+      {
+        id: "story-009",
+        title: "The Hidden Path Stone",
+        content: "On the highest ledge, where the cold vapor meets the stars, a Path Stone waits. Only those who restore the Wind Current can reach it.",
+        isTrue: true,
+        category: "clue",
+        revealedClue: "Wesa Path Stone requires Wind Current restoration"
+      }
+    ]
+  }
+];
+
+// Family Tabaji Home Ledger progression
+export const HOME_LEDGER_PROGRESSION: HomeLedger[] = [
+  {
+    level: 1,
+    description: "Tiny Tabaji Stall - A humble food counter serving basic canopy snacks to travelers.",
+    unlockedFeatures: ["Basic pantry storage", "Simple meal service"],
+    tabajiStallUpgrades: ["Wooden counter", "Leaf-wrap station"]
+  },
+  {
+    level: 2,
+    description: "Expanded Food Counter - Now offering prepared dishes and hosting small gatherings.",
+    unlockedFeatures: ["Prepared food recipes", "Small festival prep area", "NPC visitor seating"],
+    tabajiStallUpgrades: ["Bamboo expansion", "Cooking hearth", "Hanging lantern display"]
+  },
+  {
+    level: 3,
+    description: "Major Gathering Place - A central hub for community events, festivals, and storytellers.",
+    unlockedFeatures: ["Festival hosting", "Story Circle annex", "Trade network access", "Rare food imports"],
+    tabajiStallUpgrades: ["Ironwood pillars", "Multi-tier serving platforms", "Glowing fiber decorations", "Community table"]
+  }
+];
+
+// Living Numa Ecology - Sequential spawn relationships
+export const NUMA_ECOLOGY_CHAINS: Record<string, { delayDays: number; spawnsAfter: string[]; condition?: string }[]> = {
+  "001": [ // Taki line
+    { delayDays: 3, spawnsAfter: ["fora-01"], condition: "Forest Fruit appears after 3 days" },
+    { delayDays: 5, spawnsAfter: ["001"], condition: "Small Wind Numa arrive after Taki sighting" },
+    { delayDays: 10, spawnsAfter: ["002"], condition: "Rare Elder Takima appears in restored habitat" }
+  ],
+  "004": [ // Kozui line
+    { delayDays: 2, spawnsAfter: ["stap-06"], condition: "Ash-bulb blooms near volcanic vents" },
+    { delayDays: 4, spawnsAfter: ["004"], condition: "Heat-seeking Numa follow thermal signatures" },
+    { delayDays: 8, spawnsAfter: ["fora-10"], condition: "Glass-shards attract rare variants" }
+  ],
+  "007": [ // Vanui line
+    { delayDays: 3, spawnsAfter: ["stap-03"], condition: "Kelp beds regrow in tidal zones" },
+    { delayDays: 6, spawnsAfter: ["007"], condition: "Reef guardians patrol restored waters" },
+    { delayDays: 12, spawnsAfter: ["fora-07"], condition: "Pearl-shells signal deep ocean Numa approach" }
+  ]
+};
