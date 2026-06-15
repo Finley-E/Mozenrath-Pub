@@ -1,4 +1,4 @@
-import { Numa, NumaClass, EvolutionStage, FoodItem, FoodCategory, Island, VocabWord, CurrentType, MemoryRoute, StoryCircleEntry, HomeLedger } from "../types";
+import { Numa, NumaClass, EvolutionStage, FoodItem, FoodCategory, Island, VocabWord, CurrentType, MemoryRoute, StoryCircleEntry, HomeLedger, Trainer } from "../types";
 
 // 4 Island details
 export const ISLANDS: Island[] = [
@@ -894,4 +894,294 @@ export const NUMA_ECOLOGY_CHAINS: Record<string, { delayDays: number; spawnsAfte
     { delayDays: 6, spawnsAfter: ["007"], condition: "Reef guardians patrol restored waters" },
     { delayDays: 12, spawnsAfter: ["fora-07"], condition: "Pearl-shells signal deep ocean Numa approach" }
   ]
+};
+
+// ============================================================================
+// VERTICAL SLICE DATA: VALIRA QUARTER & FIRST HOUR EXPERIENCE
+// This is the most detailed location in the game - the emotional anchor
+// ============================================================================
+
+/**
+ * Valira Quarter: The Heartbeat of Mascarene Civilization
+ * Players should remember Valira 20 hours later.
+ */
+export interface ValiraLocation {
+  id: string;
+  name: string;
+  description: string;
+  type: 'home' | 'tabaji' | 'story_circle' | 'shelter' | 'rooftop' | 'harbor';
+  npcs: string[];
+  unlockCondition?: string;
+}
+
+export const VALIRA_QUARTER_LOCATIONS: ValiraLocation[] = [
+  {
+    id: 'valira_home',
+    name: "Blas's Family Home",
+    description: "A modest stone house with a courtyard. Smells of dried spices and rain.",
+    type: 'home',
+    npcs: ['Mother', 'Father', 'Grandmother'],
+  },
+  {
+    id: 'valira_tabaji',
+    name: "Family Tabaji Stall",
+    description: "A small wooden food stall. Early game: simple wraps. Late game: regional hub.",
+    type: 'tabaji',
+    npcs: ['Customers', 'Neighbors'],
+  },
+  {
+    id: 'valira_story_circle',
+    name: "Elder's Bench",
+    description: "A curved stone bench under an old Ironwood tree. Stories are told here daily.",
+    type: 'story_circle',
+    npcs: ['Elder Kavi', 'Children', 'Pim'],
+  },
+  {
+    id: 'valira_shelter',
+    name: "Storm Shelter",
+    description: "A deep alcove carved into the basalt cliff. Safe from the monsoon winds.",
+    type: 'shelter',
+    npcs: ['Panicked Neighbors'],
+    unlockCondition: 'During Storm Event',
+  },
+  {
+    id: 'valira_rooftops',
+    name: "Rooftop Routes",
+    description: "Connected terraces used for drying food and quick travel during floods.",
+    type: 'rooftop',
+    npcs: [],
+    unlockCondition: 'After restoring Memory Route',
+  },
+  {
+    id: 'valira_harbor_edge',
+    name: "Harbor Edge",
+    description: "Where the sea meets the stone steps. Boats come and go with the tides.",
+    type: 'harbor',
+    npcs: ['Fishers', 'Traders'],
+  },
+];
+
+/**
+ * PIM: The Companion (NOT Rival)
+ * Age 10. Lives nearby. Already collecting stories.
+ * Not a rival. Not an enemy. A companion exploring the same mystery.
+ */
+export const PIM: Trainer = {
+  id: 'pim',
+  name: 'Pim',
+  age: 10,
+  role: 'Chronicler',
+  description: "Always carries a notebook. Asks more questions than she answers.",
+  starterNumaId: 'kozui', // She chose Kozui for its curiosity
+  relationship: 'companion',
+  quotes: {
+    intro: "Did you see that? The wind changed direction before the rain started. The Numa know something we don't.",
+    storm: "My grandmother says the storm isn't angry. It's... remembering. We should find shelter.",
+    discovery: "Look! The Sana Loop reacted to that stone. It's not just jewelry, Blas. It's a key.",
+    festival: "I wrote it all down. The song, the food, the way the Numa danced. We can't let this be forgotten again.",
+  },
+};
+
+/**
+ * FIRST HOUR SCRIPT: Day 1 to First Festival
+ * The most critical sequence in the entire game.
+ */
+export type StoryBeat = 
+  | 'START' 
+  | 'TABAJI_WORK' 
+  | 'STORM_STARTS' 
+  | 'SHELTER_SEQUENCE' 
+  | 'DISCOVERY' 
+  | 'FIRST_RESTORATION' 
+  | 'FIRST_FESTIVAL';
+
+export interface StorySegment {
+  beat: StoryBeat;
+  location: string;
+  objective: string;
+  narrative: string;
+  mechanicIntroduced: string;
+}
+
+export const DAY_ONE_SCRIPT: StorySegment[] = [
+  {
+    beat: 'TABAJI_WORK',
+    location: 'valira_tabaji',
+    objective: "Help parents serve morning customers",
+    narrative: "Learn controls by moving food, talking to neighbors, and understanding the rhythm of Valira.",
+    mechanicIntroduced: 'Interaction & Family Tabaji',
+  },
+  {
+    beat: 'STORM_STARTS',
+    location: 'valira_harbor_edge',
+    objective: "Secure the stalls before the wind picks up",
+    narrative: "The sky turns green. Elders shout warnings. The world changes dynamically.",
+    mechanicIntroduced: 'Dynamic Weather & NPC Behavior Change',
+  },
+  {
+    beat: 'SHELTER_SEQUENCE',
+    location: 'valira_shelter',
+    objective: "Wait out the storm with neighbors",
+    narrative: "Stories are shared in the dark. You hear about the 'Silent Current' for the first time.",
+    mechanicIntroduced: 'Story Circles (Informal)',
+  },
+  {
+    beat: 'DISCOVERY',
+    location: 'valira_rooftops',
+    objective: "Find the source of the glowing light after the rain",
+    narrative: "The storm washed away debris, revealing an ancient path marker. The Sana Loop warms up.",
+    mechanicIntroduced: 'Sana Loop & Hidden Numa Vision',
+  },
+  {
+    beat: 'FIRST_RESTORATION',
+    location: 'valira_rooftops',
+    objective: "Clear the path and place the first Sanu Ledger fragment",
+    narrative: "You don't fight a boss. You restore a connection. The stone hums.",
+    mechanicIntroduced: 'Memory Routes & Ledger Fragments',
+  },
+  {
+    beat: 'FIRST_FESTIVAL',
+    location: 'valira_story_circle',
+    objective: "Join the small celebration that returns",
+    narrative: "Lights appear. A rare food is cooked. A Numa that was hiding now dances openly.",
+    mechanicIntroduced: 'Festival Loop & Harmony',
+  },
+];
+
+/**
+ * FESTIVAL LOOP SYSTEM
+ * Restore Memory Route → Village celebrates → Rare foods appear → Unique Numa appear → Ledger updates → New routes unlock
+ */
+export interface FestivalEvent {
+  id: string;
+  name: string;
+  triggerRoute: string;
+  foods: string[];
+  uniqueNumaSpawns: string[];
+  ledgerUpdate: string;
+}
+
+export const VALIRA_FIRST_FESTIVAL: FestivalEvent = {
+  id: 'festival_of_returning_winds',
+  name: "Festival of Returning Winds",
+  triggerRoute: 'ironwood_root_path',
+  foods: ['Spiced Wind Wraps', 'Rain-Honey Tea'],
+  uniqueNumaSpawns: ['takima_elder', 'breeze_wisp'],
+  ledgerUpdate: "Records the first successful migration return in 50 years.",
+};
+
+/**
+ * LEDGER FRAGMENTS: The Real Collection Goal
+ * Instead of "Catch 150 creatures," use "Restore civilization through fragments"
+ */
+export type FragmentType = 'recipe' | 'song' | 'migration' | 'story' | 'navigation';
+
+export interface LedgerFragment {
+  id: string;
+  type: FragmentType;
+  name: string;
+  description: string;
+  locationFound: string;
+  restores: string;
+}
+
+export const STARTING_FRAGMENTS: LedgerFragment[] = [
+  {
+    id: 'frag_migration_001',
+    type: 'migration',
+    name: "Fragment of the Wind Path",
+    description: "A crumbling map showing where the wind Numa used to nest.",
+    locationFound: 'valira_shelter',
+    restores: 'Ironwood Root Path',
+  },
+  {
+    id: 'frag_recipe_001',
+    type: 'recipe',
+    name: "Grandmother's Rain-Honey Recipe",
+    description: "Written on a soaked leaf. The ink is fading but the scent remains.",
+    locationFound: 'valira_home',
+    restores: 'Family Tabaji Menu',
+  },
+  {
+    id: 'frag_song_001',
+    type: 'song',
+    name: "The First Verse of Return",
+    description: "Hummed by Elder Kavi. Only one verse remains.",
+    locationFound: 'valira_story_circle',
+    restores: 'Festival Music',
+  },
+];
+
+/**
+ * FAMILY PROGRESSION: Tabaji Evolution
+ * Players feel their actions changed home.
+ */
+export interface TabajiStage {
+  level: number;
+  name: string;
+  description: string;
+  visualChanges: string[];
+  unlocks: string[];
+}
+
+export const TABAJI_PROGRESSION: TabajiStage[] = [
+  {
+    level: 1,
+    name: "Wooden Stall",
+    description: "Simple setup. Just enough to feed the family and neighbors.",
+    visualChanges: ['Weathered wood', 'Single pot', 'Cloth awning'],
+    unlocks: ['Basic Wraps'],
+  },
+  {
+    level: 2,
+    name: "Neighborhood Hub",
+    description: "Expanded counter. People sit and talk while they eat.",
+    visualChanges: ['Stone counter', 'Two pots', 'Lanterns', 'Seating area'],
+    unlocks: ['Regional Dishes', 'Story Listening'],
+  },
+  {
+    level: 3,
+    name: "Regional Gathering Place",
+    description: "A landmark. Traders stop here specifically for the food.",
+    visualChanges: ['Carved pillars', 'Multiple stations', 'Festival decorations'],
+    unlocks: ['Rare Recipes', 'Festival Hosting'],
+  },
+  {
+    level: 4,
+    name: "Festival Center",
+    description: "The heart of Valira. Where the great feasts are held.",
+    visualChanges: ['Golden accents', 'Large fire pit', 'Music stage'],
+    unlocks: ['Legendary Feasts', 'Silent Current Rituals'],
+  },
+];
+
+/**
+ * VERTICAL SLICE CHECKLIST
+ * If these 8 things work, everything else becomes content generation:
+ * - 150 Numa becomes content generation
+ * - 50 moves becomes balancing
+ * - 8 Circle Houses becomes scaling
+ */
+export const VERTICAL_SLICE_CHECKLIST = {
+  valiraQuarter: '100% - Most detailed location in the game',
+  sanaLoop: '100% - Reveals hidden Numa and memories',
+  starterLines: '100% - Taki/Kozui/Vanui fully implemented',
+  pim: '100% - Companion chronicler, not rival',
+  firstCircleHouse: '100% - Elder Kavi with 9 stories',
+  firstFestival: '100% - Festival of Returning Winds',
+  firstMemoryRoute: '100% - Ironwood Root Path restoration',
+  firstLedgerRestoration: '100% - Fragment collection and placement',
+};
+
+/**
+ * EXPORT WRAPPER FOR VERTICAL SLICE
+ */
+export const MascareneVerticalSlice = {
+  locations: VALIRA_QUARTER_LOCATIONS,
+  companion: PIM,
+  storyScript: DAY_ONE_SCRIPT,
+  firstFestival: VALIRA_FIRST_FESTIVAL,
+  startingFragments: STARTING_FRAGMENTS,
+  familyProgression: TABAJI_PROGRESSION,
+  checklist: VERTICAL_SLICE_CHECKLIST,
 };

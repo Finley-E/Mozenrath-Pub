@@ -1,0 +1,251 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NovaRender | Production Console</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    gridTemplateColumns: {
+                        '16': 'repeat(16, minmax(0, 1fr))',
+                    },
+                    gridTemplateRows: {
+                        '11': 'repeat(11, minmax(0, 1fr))',
+                    }
+                }
+            }
+        }
+    </script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-deep: #02040a;
+            --accent: #6366f1;
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            background: radial-gradient(circle at 50% -20%, #1e1b4b 0%, var(--bg-deep) 70%);
+            color: #f8fafc;
+            min-height: 100vh;
+        }
+        .glass {
+            background: rgba(15, 23, 42, 0.6);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        .mono { font-family: 'JetBrains Mono', monospace; }
+        
+        /* Explicit backup classes supporting perfect GBC tile alignment */
+        .grid-cols-16 {
+            display: grid !important;
+            grid-template-columns: repeat(16, minmax(0, 1fr)) !important;
+        }
+        .grid-rows-11 {
+            grid-template-rows: repeat(11, minmax(0, 1fr)) !important;
+        }
+        
+        /* Game Boy camera shake collision rumble */
+        @keyframes rumble {
+            0%, 100% { transform: translate(0, 0); }
+            20% { transform: translate(-3px, 1.5px) rotate(-0.5deg); }
+            40% { transform: translate(3px, -1.5px) rotate(0.5deg); }
+            60% { transform: translate(-1.5px, 2px) rotate(0.2deg); }
+            80% { transform: translate(1.5px, -2px) rotate(-0.2deg); }
+        }
+        .screen-rumble {
+            animation: rumble 0.15s ease-in-out;
+        }
+
+        /* 🥇 HIGH FIDELITY ATMOSPHERIC ANIMATION SYSTEM */
+        
+        /* Rainy weather: slanting fast raindrops */
+        @keyframes rainFall {
+            0% { transform: translate3d(40px, -60px, 0) scaleY(1); opacity: 0; }
+            15% { opacity: 0.7; }
+            85% { opacity: 0.7; }
+            100% { transform: translate3d(-60px, 350px, 0) scaleY(1); opacity: 0; }
+        }
+        .rain-streak {
+            position: absolute;
+            width: 1px;
+            height: 35px;
+            background: linear-gradient(to bottom, transparent, rgba(165, 243, 252, 0.7));
+            animation: rainFall 0.7s linear infinite;
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        /* Volcanic weather: floating drift embers with glowing background */
+        @keyframes emberFloat {
+            0% { transform: translate3d(0, 320px, 0) scale(0.6) rotate(0deg); opacity: 0; }
+            15% { opacity: 0.95; }
+            85% { opacity: 0.85; }
+            100% { transform: translate3d(24px, -20px, 0) scale(1.1) rotate(180deg); opacity: 0; filter: hue-rotate(15deg); }
+        }
+        .volcanic-ember {
+            position: absolute;
+            background: radial-gradient(circle, #f97316 20%, #ef4444 75%, transparent 100%);
+            border-radius: 9999px;
+            box-shadow: 0 0 5px rgba(239, 68, 68, 0.7), 0 0 10px rgba(249, 115, 22, 0.5);
+            animation: emberFloat 3.2s ease-in-out infinite;
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        /* Gale weather: high-speed wind streaks */
+        @keyframes galeWind {
+            0% { transform: translate3d(320px, 0, 0) scaleX(0.4); opacity: 0; }
+            15% { opacity: 0.5; }
+            85% { opacity: 0.5; }
+            100% { transform: translate3d(-340px, 15px, 0) scaleX(1.6); opacity: 0; }
+        }
+        .gale-gust {
+            position: absolute;
+            height: 1px;
+            background: linear-gradient(to right, transparent, rgba(238, 242, 246, 0.65), transparent);
+            animation: galeWind 1.4s ease-in-out infinite;
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        /* Aurora weather: color changing curtain ripples */
+        @keyframes auroraWave {
+            0%, 100% { opacity: 0.15; transform: perspective(250px) rotateX(10deg) scaleY(1) skewX(-2deg); }
+            50% { opacity: 0.42; transform: perspective(250px) rotateX(12deg) scaleY(1.18) skewX(4deg); }
+        }
+        .aurora-curtain {
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(135deg, rgba(52, 211, 153, 0.1) 0%, rgba(20, 184, 166, 0.1) 33%, rgba(99, 102, 241, 0.15) 66%, rgba(168, 85, 247, 0.12) 100%);
+            mix-blend-mode: screen;
+            animation: auroraWave 7.5s ease-in-out infinite;
+            pointer-events: none;
+            z-index: 9;
+        }
+
+        /* Foggy weather: moving heavy mist */
+        @keyframes fogScroll {
+            0% { background-position: 0px 0px; opacity: 0.18; }
+            50% { opacity: 0.28; }
+            100% { background-position: 600px 0px; opacity: 0.18; }
+        }
+        .fog-mist {
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(circle at 10% 10%, rgba(241, 245, 249, 0.18) 12%, transparent 40%),
+                        radial-gradient(circle at 70% 80%, rgba(241, 245, 249, 0.22) 18%, transparent 55%),
+                        radial-gradient(circle at 45% 40%, rgba(241, 245, 249, 0.15) 22%, transparent 48%);
+            background-size: 600px 400px;
+            mix-blend-mode: overlay;
+            animation: fogScroll 14s linear infinite;
+            pointer-events: none;
+            z-index: 9;
+        }
+
+        @keyframes scanline {
+            0% { transform: translateY(-100%); }
+            100% { transform: translateY(100%); }
+        }
+        .terminal-overlay::after {
+            content: "";
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: linear-gradient(to bottom, transparent 50%, rgba(0,0,0,0.1) 50%);
+            background-size: 100% 4px;
+            pointer-events: none;
+        }
+
+        /* 👾 GAME FREAK COMBAT MASTERPIECE ANIMATIONS */
+        @keyframes slideInFromLeft {
+            0% { transform: translate3d(-180px, 10px, 0); opacity: 0; }
+            70% { transform: translate3d(8px, -2px, 0); }
+            100% { transform: translate3d(0, 0, 0); opacity: 1; }
+        }
+        .companion-slide-in {
+            animation: slideInFromLeft 0.55s cubic-bezier(0.175, 0.885, 0.32, 1.1) forwards;
+        }
+
+        @keyframes slideInFromRight {
+            0% { transform: translate3d(180px, -10px, 0); opacity: 0; }
+            70% { transform: translate3d(-8px, 2px, 0); }
+            100% { transform: translate3d(0, 0, 0); opacity: 1; }
+        }
+        .opponent-slide-in {
+            animation: slideInFromRight 0.55s cubic-bezier(0.175, 0.885, 0.32, 1.1) forwards;
+        }
+
+        @keyframes hitFlicker {
+            0%, 40%, 80% { opacity: 0.15; filter: brightness(1.5) contrast(1.2); }
+            20%, 60%, 100% { opacity: 1; filter: none; }
+        }
+        .hit-flinch {
+            animation: hitFlicker 0.38s ease-in-out;
+        }
+
+        @keyframes doubleSpin {
+            0% { transform: rotate(0deg) scale(1); }
+            50% { transform: rotate(180deg) scale(1.4); }
+            100% { transform: rotate(360deg) scale(1); }
+        }
+        .battler-spin {
+            animation: doubleSpin 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        /* Battle transition blind blocks */
+        @keyframes blindBlockIn {
+            0% { transform: scaleY(0); transform-origin: top; }
+            50% { transform: scaleY(1); transform-origin: top; }
+            51% { transform: scaleY(1); transform-origin: bottom; }
+            100% { transform: scaleY(0); transform-origin: bottom; }
+        }
+        .battle-blinds-overlay {
+            position: absolute;
+            inset: 0;
+            background-color: #0b130e;
+            z-index: 99;
+            transform: scaleY(0);
+            pointer-events: none;
+        }
+        .battle-blinds-active {
+            animation: blindBlockIn 1.1s cubic-bezier(0.77, 0, 0.175, 1) forwards;
+        }
+
+        @keyframes epicStrobe {
+            0%, 25%, 50%, 75% { background-color: #f8fafc; filter: invert(1); }
+            12.5%, 37.5%, 62.5%, 87.5% { background-color: #0f172a; filter: none; }
+            100% { opacity: 0; }
+        }
+        .battle-intro-strobe {
+            position: absolute;
+            inset: 0;
+            z-index: 100;
+            pointer-events: none;
+            animation: epicStrobe 0.8s steps(2, end) forwards;
+        }
+        
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 10px; }
+    </style>
+
+<link rel="stylesheet" href="/index.css">
+<script type="importmap">
+{
+  "imports": {
+    "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
+    "react/": "https://esm.sh/react@^19.2.3/",
+    "react": "https://esm.sh/react@^19.2.3",
+    "@google/genai": "https://esm.sh/@google/genai@^1.38.0"
+  }
+}
+</script>
+  <script type="module" crossorigin src="/assets/index-CGCoQmRH.js"></script>
+</head>
+<body>
+    <div id="root"></div>
+</body>
+</html>
